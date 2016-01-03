@@ -9,16 +9,37 @@
 #include "expression.h"
 
 #include <string>
+#include <map>
+
+
 
 class parser {
-public:
-    parser() {}
 
-    expression parse(std::string str)
-    {
-        // TODO : make parser
-        return  expression();
-    }
+    std::map<std::string, variable*> vars;
+
+    std::string str;
+
+    size_t index;
+    size_t lexem;
+    std::string last_var_name;
+
+    void nextLex();
+
+    expression parse_implication();
+    expression parse_disjunction();
+    expression parse_conjunction();
+    expression parse_negation();
+    expression parse_variable_ref();
+
+public:
+
+    parser();
+
+    ~parser();
+
+    variable * get_variable(std::string const& str);
+
+    expression parse(std::string const& str);
 };
 
 

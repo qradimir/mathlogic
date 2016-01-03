@@ -69,8 +69,6 @@ public:
 };
 
 class variable {
-
-
 public:
     bool value;
     std::string name;
