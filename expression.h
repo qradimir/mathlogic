@@ -6,65 +6,65 @@
 #define MATHLOGIC_EXPRESSION_H
 
 #include <functional>
+#include <assert.h>
+
+#include "expression_storage.h"
 
 class connective;
 
 class expression {
+public:
+    virtual bool operator()() const = 0;
+    virtual std::string to_string() const = 0;
+    virtual size_t get_priority() const = 0;
+
+    std::string to_bounded_string(int priority) const {
+        return (priority < get_priority()) ? '(' + this->to_string() + ')' : this->to_string();
+    }
+
+    virtual ~expression() {
+    }
+};
+
+class operation : public expression {
 
     connective const* conn;
 
-    size_t sub_count;
-    expression* sub;
-
-    void copy(connective const* conn, size_t sub_count, expression const* sub) {
-        this->conn = conn;
-        this->sub_count = sub_count;
-        this->sub = new expression[sub_count];
-        for (int i = 0; i < sub_count; ++i) {
-            this->sub[i] = sub[i];
-        }
-    }
+    expression_storage storage;
 
 public:
 
-    expression();
+    operation();
+    operation(connective const *conn, expression_storage const &storage);
 
-    expression(connective const* conn, size_t  sub_count, expression const* sub);
+    operation(operation const& other);
 
-    expression(expression const& other);
+    inline size_t get_sub_count() const;
 
-    bool operator()() const;
+    inline const expression * get_sub(size_t i) const;
 
+    void operator=(operation const& other);
 
-    inline size_t get_sub_count() const {
-        return sub_count;
-    }
-
-    inline expression const& get_sub(size_t i) const {
-        if (i >= sub_count)
-            throw -1;
-
-        return sub[i];
-    }
-
-    void operator=(expression const& other);
-
-
-    std::string to_string();
-    std::string to_bounded_string(size_t priority);
-
-    friend std::ostream & operator<<(std::ostream & out, expression a) {
-        return out << a.to_string();
-    }
+    virtual bool operator()() const;
+    virtual std::string to_string() const;
+    virtual size_t get_priority() const;
 };
+
+inline size_t operation::get_sub_count() const {
+    return storage.size();
+}
+
+inline const expression * operation::get_sub(size_t i) const {
+    return storage.get(i);
+}
 
 class connective {
 public:
     size_t priority;
     std::function<bool(bool*)> evaluator;
-    std::function<std::string(expression*)> str_getter;
+    std::function<std::string(expression_storage const&)> str_getter;
 
-    connective(std::function<bool(bool*)> evaluator, std::function<std::string(expression*)> str_getter, size_t priority);
+    connective(std::function<bool(bool*)> evaluator, std::function<std::string(expression_storage const&)> str_getter, size_t priority);
 
 };
 
@@ -72,23 +72,79 @@ class variable {
 public:
     bool value;
     std::string name;
-    connective conn;
 
-
-    variable(std::string const& name);
-
-    variable(std::string const& name, bool value);
+    variable(std::string const& name, bool value = false);
 
 };
 
+class expression_link {
+public:
+    expression * value;
+    std::string name;
 
+    inline bool operator()() {
+        assert(value != nullptr);
 
-expression make_disjunction(expression const& left, expression const& right);
-expression make_conjunction(expression const& left, expression const& right);
-expression make_implication(expression const& left, expression const& right);
+        return value->operator()();
+    }
 
-expression make_negation(expression const& expr);
+    expression_link(std::string const& name, expression * value = nullptr);
+};
 
-expression make_variable_ref(variable const& var);
+class variable_ref : public expression {
+
+    variable* const ref;
+
+public:
+    inline variable& operator->() {
+        return *ref;
+    }
+
+    virtual bool operator()() const;
+    virtual std::string to_string() const;
+    virtual size_t get_priority() const;
+
+    variable_ref(variable* ref);
+};
+
+class expression_link_ref : public expression {
+
+    expression_link* const ref;
+
+public:
+    inline expression_link const& operator->() {
+        return *ref;
+    }
+
+    virtual bool operator()() const;
+    virtual std::string to_string() const;
+    virtual size_t get_priority() const;
+
+    expression_link_ref(expression_link* ref);
+};
+
+static connective negation(
+        [] (bool* args) -> bool { return !args[0]; },
+        [] (expression_storage const& storage) -> std::string { return "!" + storage[0]->to_bounded_string(1); },
+        1
+);
+
+static connective conjunction(
+        [] (bool* args) -> bool { return args[0] & args[1]; },
+        [] (expression_storage const& storage) -> std::string { return storage[0]->to_bounded_string(2) + "&" + storage[1]->to_bounded_string(2); },
+        2
+);
+
+static connective disjunction(
+        [] (bool* args) -> bool { return args[0] | args[1]; },
+        [] (expression_storage const& storage) -> std::string { return storage[0]->to_bounded_string(3) + "|" + storage[1]->to_bounded_string(3); },
+        3
+);
+
+static connective implication(
+        [] (bool* args) -> bool { return !args[0] | args[1]; },
+        [] (expression_storage const& storage) -> std::string { return storage[0]->to_bounded_string(3) + "->" + storage[1]->to_bounded_string(4); },
+        4
+);
 
 #endif //MATHLOGIC_EXPRESSION_H

@@ -25,11 +25,11 @@ class parser {
 
     void nextLex();
 
-    expression parse_implication();
-    expression parse_disjunction();
-    expression parse_conjunction();
-    expression parse_negation();
-    expression parse_variable_ref();
+    expression const* parse_implication();
+    expression const* parse_disjunction();
+    expression const* parse_conjunction();
+    expression const* parse_negation();
+    expression const* parse_variable_ref();
 
 public:
 
@@ -39,7 +39,7 @@ public:
 
     variable * get_variable(std::string const& str);
 
-    expression parse(std::string const& str);
+    expression const* parse(std::string const& str);
 };
 
 

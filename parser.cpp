@@ -54,49 +54,49 @@ void parser::nextLex() {
     index++;
 }
 
-expression parser::parse_implication() {
-    expression impl = parse_disjunction();
+expression const* parser::parse_implication() {
+    expression const* impl = parse_disjunction();
     if (lexem == LEXEM_IMPLICATION) {
         nextLex();
-        return make_implication(impl, parse_implication());
+        return new operation(&implication, expression_storage(impl, parse_disjunction()));
     } else {
         return impl;
     }
 }
 
-expression parser::parse_disjunction() {
-    expression disj = parse_conjunction();
+expression const* parser::parse_disjunction() {
+    expression const* disj = parse_conjunction();
     while (lexem == LEXEM_DISJUNCTION) {
         nextLex();
-        disj = make_disjunction(disj, parse_conjunction());
+        disj = new operation(&disjunction, expression_storage(disj, parse_conjunction()));
     }
     return disj;
 }
 
-expression parser::parse_conjunction() {
-    expression conj = parse_negation();
+expression const* parser::parse_conjunction() {
+    expression const* conj = parse_negation();
     while (lexem == LEXEM_CONJUNCTION) {
         nextLex();
-        conj = make_conjunction(conj, parse_negation());
+        conj = new operation(&conjunction, expression_storage(conj, parse_negation()));
     }
     return conj;
 }
 
-expression parser::parse_negation() {
+expression const* parser::parse_negation() {
     if (lexem == LEXEM_NEGATION) {
         nextLex();
-        return make_negation(parse_negation());
+        return new operation(&negation, expression_storage(parse_negation()));
     }
     if (lexem == LEXEM_OBR) {
         nextLex();
-        expression ret = parse_implication();
+        expression const* ret = parse_implication();
         nextLex();
         return ret;
     }
     return parse_variable_ref();
 }
 
-expression parser::parse_variable_ref() {
+expression const* parser::parse_variable_ref() {
     variable* var;
     auto ptr = vars.find(last_var_name);
     if (ptr == vars.end()) {
@@ -105,7 +105,7 @@ expression parser::parse_variable_ref() {
     } else {
         var = ptr->second;
     }
-    return make_variable_ref(*var);
+    return new variable_ref(var);
 }
 
 parser::parser() {
@@ -117,7 +117,7 @@ parser::~parser() {
     }
 }
 
-expression parser::parse(std::string const& str) {
+expression const* parser::parse(std::string const& str) {
     this->str = str;
     index = 0;
     last_var_name = "";
