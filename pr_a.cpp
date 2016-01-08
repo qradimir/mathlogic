@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "parser.h"
-
+#include "axiomas.h"
 
 parser p;
 
@@ -70,10 +70,15 @@ int main() {
     add_test("A&B");
     add_test("A&B|!A&!B->A|B");
     add_test("A|B&A|B->A&B|A&B->(A|B)&(A|!B)");
-    add_test("!(A|B&A|B->A&!(B|A)&B)->!(A|B)&!(!A|!B)");
+    add_test("!(A|B&A|B->A&!(B|A|B)&B)->!(A|B)&!(!A|!B)");
 
     A = find_variable("A");
     B = find_variable("B");
+    auto axiomas = get_axiomas();
+    for (size_t i = 0; i < axiomas.size(); ++i) {
+        std::cout << axioma_names[i] << " = "<< axiomas[i]->to_string() << '\n';
+    }
+
     std::cout << (*impl1 == *impl2) << '\n';
 
     for (auto it = exprs.begin(); it != exprs.end(); ++it) {
@@ -98,10 +103,6 @@ int main() {
     test(false, true);
     test(true, false);
     test(true, true);
-
-    for (auto it = exprs.begin(); it != exprs.end(); ++it) {
-        delete(*it);
-    }
 
     release();
     return 0;

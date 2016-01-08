@@ -58,7 +58,7 @@ expression const* parser::parse_implication() {
     expression const* impl = parse_disjunction();
     if (lexem == LEXEM_IMPLICATION) {
         nextLex();
-        return new operation(&implication, expression_storage(impl, parse_disjunction()));
+        return new operation(&implication, expression_storage(impl, parse_implication()));
     } else {
         return impl;
     }
@@ -132,6 +132,8 @@ expression const* parser::parse(std::string const &str, bool is_scheme_parcing) 
     last_ref_name = "";
     this->is_scheme_parsing = is_scheme_parcing;
     nextLex();
-    return parse_implication();
+    auto ptr = parse_implication();
+    add_to_release(ptr);
+    return ptr;
 }
 

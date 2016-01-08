@@ -3,12 +3,13 @@
 //
 
 #include <map>
+#include <vector>
 
 #include "expression.h"
 
 std::map<std::string, variable*> vars;
 std::map<std::string, expression_link*> expr_links;
-
+std::vector<expression const*> to_release;
 
 expression const* start_equal_ptr;
 
@@ -157,6 +158,12 @@ void release() {
     for (auto it = expr_links.begin(); it != expr_links.end(); ++it) {
         delete(it->second);
     }
+    for (auto it = to_release.begin(); it != to_release.end(); ++it) {
+        delete(*it);
+    }
+    vars.clear();
+    expr_links.clear();
+    to_release.clear();
 }
 
 variable *find_variable(std::string const &name) {
@@ -173,4 +180,8 @@ expression_link *find_expression_link(std::string const &name) {
         return nullptr;
     }
     return it->second;
+}
+
+void add_to_release(expression const *expr) {
+    to_release.insert(to_release.end(), expr);
 }

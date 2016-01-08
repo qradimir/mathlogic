@@ -164,6 +164,8 @@ static connective implication(
 variable* find_variable(std::string const& name);
 expression_link* find_expression_link(std::string const& name);
 
+
+void add_to_release(expression const* expr);
 void release();
 
 #endif //MATHLOGIC_EXPRESSION_H
