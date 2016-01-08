@@ -15,8 +15,10 @@ void log(expression const*  e) {
     std::cout << e << " = " << e->operator()() << '\n';
 }
 
-void add_test(std::string const& str) {
-    exprs.insert(exprs.end(), p.parse(str));
+expression const* add_test(std::string const& str) {
+    expression const* expr = p.parse(str);
+    exprs.insert(exprs.end(), expr);
+    return expr;
 }
 
 expression const* gen_expr(size_t w) {
@@ -62,23 +64,35 @@ int main() {
     add_test("A");
     add_test("B");
     add_test("!A");
-    add_test("A->B");
+    expression const* impl1 = add_test("A->B");
+    expression const* impl2 = add_test("A->B");
     add_test("A|B");
     add_test("A&B");
     add_test("A&B|!A&!B->A|B");
     add_test("A|B&A|B->A&B|A&B->(A|B)&(A|!B)");
     add_test("!(A|B&A|B->A&!(B|A)&B)->!(A|B)&!(!A|!B)");
 
-    A = p.get_variable("A");
-    B = p.get_variable("B");
-
-    for (int i = 10; i < 30; i += 3) {
-        add_random_test(i);
-    }
+    A = find_variable("A");
+    B = find_variable("B");
+    std::cout << (*impl1 == *impl2) << '\n';
 
     for (auto it = exprs.begin(); it != exprs.end(); ++it) {
         std::cout << *it << " is " << (*it)->to_string() << '\n';
     }
+
+    expression const* implication_scheme= p.parse("A->B", true);
+    std::cout << implication_scheme->to_string();
+
+    for (auto it = exprs.begin(); it != exprs.end(); ++it) {
+        std::cout << ((*it)->to_string()) << " is " << ((**it == *implication_scheme) ? "implication" : "not implication") << '\n';
+    }
+    std::cout << (*impl1 == *implication_scheme) << (*impl2 == *implication_scheme) << '\n';
+
+    for (size_t i = 10; i < 30; i += 3) {
+        add_random_test(i);
+    }
+
+
 
     test(false, false);
     test(false, true);
@@ -89,5 +103,6 @@ int main() {
         delete(*it);
     }
 
+    release();
     return 0;
 }

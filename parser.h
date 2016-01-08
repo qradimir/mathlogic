@@ -15,13 +15,14 @@
 
 class parser {
 
-    std::map<std::string, variable*> vars;
 
     std::string str;
 
     size_t index;
     size_t lexem;
-    std::string last_var_name;
+    std::string last_ref_name;
+
+    bool is_scheme_parsing;
 
     void nextLex();
 
@@ -29,17 +30,17 @@ class parser {
     expression const* parse_disjunction();
     expression const* parse_conjunction();
     expression const* parse_negation();
-    expression const* parse_variable_ref();
+    expression const* parse_reference();
 
+    expression const* parse_variable_ref();
+    expression const* parse_expression_link_ref();
 public:
 
     parser();
 
     ~parser();
 
-    variable * get_variable(std::string const& str);
-
-    expression const* parse(std::string const& str);
+    expression const* parse(std::string const &str, bool is_scheme_parsing = false);
 };
 
 

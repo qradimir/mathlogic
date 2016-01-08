@@ -13,10 +13,15 @@
 class connective;
 
 class expression {
+protected:
+    virtual bool equals(expression const& other) const = 0;
+
 public:
     virtual bool operator()() const = 0;
     virtual std::string to_string() const = 0;
     virtual size_t get_priority() const = 0;
+
+    bool operator==(expression const& other) const;
 
     std::string to_bounded_string(int priority) const {
         return (priority < get_priority()) ? '(' + this->to_string() + ')' : this->to_string();
@@ -31,6 +36,9 @@ class operation : public expression {
     connective const* conn;
 
     expression_storage storage;
+
+protected:
+    virtual bool equals(expression const &other) const;
 
 public:
 
@@ -79,7 +87,7 @@ public:
 
 class expression_link {
 public:
-    expression * value;
+    expression const* value;
     std::string name;
 
     inline bool operator()() {
@@ -88,12 +96,15 @@ public:
         return value->operator()();
     }
 
-    expression_link(std::string const& name, expression * value = nullptr);
+    expression_link(std::string const& name, expression const* value = nullptr);
 };
 
 class variable_ref : public expression {
 
     variable* const ref;
+
+protected:
+    virtual bool equals(expression const &other) const;
 
 public:
     inline variable& operator->() {
@@ -110,6 +121,9 @@ public:
 class expression_link_ref : public expression {
 
     expression_link* const ref;
+
+protected:
+    virtual bool equals(expression const& other) const;
 
 public:
     inline expression_link const& operator->() {
@@ -146,5 +160,10 @@ static connective implication(
         [] (expression_storage const& storage) -> std::string { return storage[0]->to_bounded_string(3) + "->" + storage[1]->to_bounded_string(4); },
         4
 );
+
+variable* find_variable(std::string const& name);
+expression_link* find_expression_link(std::string const& name);
+
+void release();
 
 #endif //MATHLOGIC_EXPRESSION_H

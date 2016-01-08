@@ -29,6 +29,7 @@ public:
         }
     }
 
+    bool operator==(_impl const& other);
 };
 
 class expression_storage {
@@ -39,7 +40,7 @@ public:
 
     expression_storage();
 
-    expression_storage(expression const** items, int count);
+    expression_storage(size_t count, expression const **items);
     expression_storage(expression_storage const& other);
 
     expression_storage(expression const* item1);
@@ -49,6 +50,8 @@ public:
     ~expression_storage();
 
     expression_storage& operator=(expression_storage const& other);
+
+    bool operator==(expression_storage const& other) const;
 
     inline expression const* get(size_t i) const {
         assert(i < impl->count);

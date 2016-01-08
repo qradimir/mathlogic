@@ -3,12 +3,12 @@
 //
 
 #include "expression_storage.h"
-
+#include "expression.h"
 
 static _impl EMPTY_STORAGE{0, new expression const*[0]};
 
 
-expression_storage::expression_storage(expression const** items, int count) {
+expression_storage::expression_storage(size_t count, expression const **items) {
     impl = new _impl(count, items);
     impl->bind();
 }
@@ -62,4 +62,21 @@ expression_storage &expression_storage::operator=(expression_storage const& othe
     impl = other.impl;
     impl->bind();
     return *this;
+}
+
+bool expression_storage::operator==(expression_storage const &other) const {
+    return *impl == *other.impl;
+}
+
+bool _impl::operator==(_impl const &other) {
+    if (this == &other) return true;
+
+    if (count != other.count) return false;
+
+    for (int i = 0; i < count; ++i) {
+        if (!(*items[i] == *other.items[i])) {
+            return false;
+        }
+    }
+    return true;
 }
