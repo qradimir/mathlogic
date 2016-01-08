@@ -1,109 +1,19 @@
-#include <iostream>
-#include <vector>
+//
+// Created by radimir on 08.01.16.
+//
 
+#include <iostream>
+#include <fstream>
 #include "parser.h"
 #include "axioms.h"
 
-parser p;
-
-variable *A;
-variable *B;
-
-std::vector<expression const*> exprs;
-
-void log(expression const*  e) {
-    std::cout << e << " = " << e->operator()() << '\n';
-}
-
-expression const* add_test(std::string const& str) {
-    expression const* expr = p.parse(str);
-    exprs.insert(exprs.end(), expr);
-    return expr;
-}
-
-expression const* gen_expr(size_t w) {
-    int t = rand();
-    if (w == 0) {
-        return (t % 2 == 0) ? new variable_ref(A) : new variable_ref(B);
+int main ( int argc, char *argv[] ) {
+    if (argc < 2) {
+        std::cerr << "enter a filename that contains proof\n";
+        return -1;
     }
-    switch (t % 4) {
-        case 0 :
-            return new operation(&implication, expression_storage(gen_expr(w - 1), gen_expr(w - 1)));
-        case 1 :
-            return new operation(&disjunction, expression_storage(gen_expr(w - 1), gen_expr(w - 1)));
-        case 2 :
-            return new operation(&conjunction, expression_storage(gen_expr(w - 1), gen_expr(w - 1)));
-        case 3 :
-            return new operation(&negation, expression_storage(gen_expr(w - 1)));
-        default:
-            return new variable_ref(A);
-    }
-}
-
-void add_random_test(size_t w) {
-    exprs.insert(exprs.end(), gen_expr(w));
-}
-
-void test(bool a, bool b) {
-    A->value = a;
-    B->value = b;
-
-    std::cout << "A = " << a << ", B = " << b << '\n';
-
-    for(auto it = exprs.begin(); it != exprs.end(); it++) {
-        log(*it);
-    }
-    std::cout << '\n';
-}
-
-int main() {
-
-    /*
-     * tests
-     */
-    add_test("A");
-    add_test("B");
-    add_test("!A");
-    expression const* impl1 = add_test("A->B");
-    expression const* impl2 = add_test("A->B");
-    add_test("A|B");
-    add_test("A&B");
-    add_test("A&B|!A&!B->A|B");
-    add_test("A|B&A|B->A&B|A&B->(A|B)&(A|!B)");
-    add_test("!(A|B&A|B->A&!(B|A|B)&B)->!(A|B)&!(!A|!B)");
-
-    A = find_variable("A");
-    B = find_variable("B");
-    auto axiomas = get_axioms();
-    for (size_t i = 0; i < axiomas.size(); ++i) {
-        std::cout << axiom_names[i] << " = " << axiomas[i]->to_string() << '\n';
-    }
-
-    std::cout << (*impl1 == *impl2) << '\n';
-
-    for (auto it = exprs.begin(); it != exprs.end(); ++it) {
-        std::cout << *it << " is " << (*it)->to_string() << '\n';
-    }
-
-    expression const* implication_scheme= p.parse("A->B", true);
-    std::cout << implication_scheme->to_string();
-
-    for (auto it = exprs.begin(); it != exprs.end(); ++it) {
-        std::cout << ((*it)->to_string()) << " is " << ((**it == *implication_scheme) ? "implication" : "not implication") << '\n';
-    }
-    std::cout << (*impl1 == *implication_scheme) << (*impl2 == *implication_scheme) << '\n';
-
-    for (size_t i = 10; i < 30; i += 3) {
-        add_random_test(i);
-    }
-
-
-
-    test(false, false);
-    test(false, true);
-    test(true, false);
-    test(true, true);
-
-    release();
+    std::ifstream input(argv[1]);
+    parser p;
+    std::cout << p.parse(input)->to_string();
     return 0;
 }

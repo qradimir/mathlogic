@@ -24,22 +24,22 @@ class parser {
 
     void nextLex();
 
-    expression const* parse_implication();
-    expression const* parse_disjunction();
-    expression const* parse_conjunction();
-    expression const* parse_negation();
-    expression const* parse_reference();
+    expression parse_implication();
+    expression parse_disjunction();
+    expression parse_conjunction();
+    expression parse_negation();
+    expression parse_reference();
 
-    expression const* parse_variable_ref();
-    expression const* parse_expression_link_ref();
+    expression parse_variable_ref();
+    expression parse_expression_link_ref();
 public:
 
     parser();
 
     ~parser();
 
-    expression const* parse(std::string const &str, bool is_scheme_parsing = false);
-    expression const* parse(std::istream& input, bool is_scheme_parsing = false);
+    expression parse(std::string const &str, bool is_scheme_parsing = false);
+    expression parse(std::istream& input, bool is_scheme_parsing = false);
 };
 
 

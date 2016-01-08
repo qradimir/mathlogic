@@ -8,12 +8,9 @@ set(UTIL
         expression.h
         parser.cpp
         parser.h
-        expression_storage.cpp
-        expression_storage.h
         axioms.h
         proof.cpp
         proof.h)
 
-set(PROBLEM_A pr_a.cpp ${UTIL})
-
-add_executable(problemA ${PROBLEM_A})
+add_executable(pr_a pr_a.cpp ${UTIL})
+add_executable(tests test.cpp ${UTIL})

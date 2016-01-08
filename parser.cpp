@@ -77,42 +77,42 @@ void parser::nextLex() {
     }
 }
 
-expression const* parser::parse_implication() {
-    expression const* impl = parse_disjunction();
+expression parser::parse_implication() {
+    expression impl = parse_disjunction();
     if (lexem == LEXEM_IMPLICATION) {
         nextLex();
-        return new operation(&implication, expression_storage(impl, parse_implication()));
+        return make_operation(&implication, impl, parse_implication());
     } else {
         return impl;
     }
 }
 
-expression const* parser::parse_disjunction() {
-    expression const* disj = parse_conjunction();
+expression parser::parse_disjunction() {
+    expression disj = parse_conjunction();
     while (lexem == LEXEM_DISJUNCTION) {
         nextLex();
-        disj = new operation(&disjunction, expression_storage(disj, parse_conjunction()));
+        disj = make_operation(&disjunction, disj, parse_conjunction());
     }
     return disj;
 }
 
-expression const* parser::parse_conjunction() {
-    expression const* conj = parse_negation();
+expression parser::parse_conjunction() {
+    expression conj = parse_negation();
     while (lexem == LEXEM_CONJUNCTION) {
         nextLex();
-        conj = new operation(&conjunction, expression_storage(conj, parse_negation()));
+        conj = make_operation(&conjunction, conj, parse_negation());
     }
     return conj;
 }
 
-expression const* parser::parse_negation() {
+expression parser::parse_negation() {
     if (lexem == LEXEM_NEGATION) {
         nextLex();
-        return new operation(&negation, expression_storage(parse_negation()));
+        return make_operation(&negation, parse_negation());
     }
     if (lexem == LEXEM_OBR) {
         nextLex();
-        expression const* ret = parse_implication();
+        expression ret = parse_implication();
         nextLex();
         return ret;
     }
@@ -120,27 +120,27 @@ expression const* parser::parse_negation() {
 }
 
 
-inline expression const *parser::parse_reference() {
+inline expression parser::parse_reference() {
     return (is_scheme_parsing ? parse_expression_link_ref() : parse_variable_ref());
 }
 
-expression const* parser::parse_variable_ref() {
+expression parser::parse_variable_ref() {
     auto ptr = find_variable(last_ref_name);
     if (ptr == nullptr) {
         ptr = new variable(last_ref_name);
     }
     nextLex();
-    return new variable_ref(ptr);
+    return make_variable_ref(ptr);
 }
 
 
-expression const *parser::parse_expression_link_ref() {
+expression parser::parse_expression_link_ref() {
     auto ptr = find_expression_link(last_ref_name);
     if (ptr == nullptr) {
         ptr =  new expression_link(last_ref_name);
     }
     nextLex();
-    return new expression_link_ref(ptr);
+    return make_expression_link_ref(ptr);
 }
 
 parser::parser() {
@@ -149,19 +149,17 @@ parser::parser() {
 parser::~parser() {
 }
 
-expression const* parser::parse(std::string const &str, bool is_scheme_parcing) {
+expression parser::parse(std::string const &str, bool is_scheme_parcing) {
     std::istringstream* input = new std::istringstream(str);
-    auto ptr = parse(*input, is_scheme_parcing);
+    expression _ = parse(*input, is_scheme_parcing);
     delete(input);
-    return ptr;
+    return _;
 }
 
-expression const* parser::parse(std::istream& input, bool is_scheme_parsing) {
+expression parser::parse(std::istream& input, bool is_scheme_parsing) {
     this->input = &input;
     last_ref_name = "";
     this->is_scheme_parsing = is_scheme_parsing;
     nextLex();
-    auto ptr = parse_implication();
-    add_to_release(ptr);
-    return ptr;
+    return parse_implication();
 }
