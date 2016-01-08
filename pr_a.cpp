@@ -14,6 +14,6 @@ int main ( int argc, char *argv[] ) {
     }
     std::ifstream input(argv[1]);
     parser p;
-    std::cout << p.parse(input)->to_string();
+    std::cout << p.parse_proof(input);
     return 0;
 }

@@ -21,7 +21,7 @@ static std::string axiom_names[]{
     "!!X->X"
 };
 
-std::vector<expression> get_axioms() {
+static std::vector<expression> get_axioms() {
     parser axiom_parser;
     std::vector<expression> axioms;
     for (int i = 0; i < 10; ++i) {

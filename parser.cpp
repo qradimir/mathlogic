@@ -163,3 +163,28 @@ expression parser::parse(std::istream& input, bool is_scheme_parsing) {
     nextLex();
     return parse_implication();
 }
+
+proof parser::parse_proof(std::istream &input) {
+    this->input = &input;
+    is_scheme_parsing = false;
+    nextLex();
+    std::vector<expression> supposes{};
+    if (lexem != LEXEM_SEPARATOR) {
+        supposes.push_back(parse_implication());
+        while (lexem != LEXEM_SEPARATOR) {
+            nextLex();
+            supposes.push_back(parse_implication());
+        }
+    }
+    nextLex();
+    expression statement = parse_implication();
+    std::vector<expression> proof_list{};
+    while (lexem == LEXEM_NEW_LINE) {
+        nextLex();
+        if (lexem == LEXEM_END) {
+            break;
+        }
+        proof_list.push_back(parse_implication());
+    }
+    return proof(supposes, proof_list, statement);
+}

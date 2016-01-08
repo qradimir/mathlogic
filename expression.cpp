@@ -27,13 +27,14 @@ expression::~expression() {
 }
 
 expression &expression::operator=(expression const &other) {
-    expr->unbind();
+    if (expr != nullptr) expr->unbind();
     expr = other.expr;
-    expr->bind();
+    if (expr != nullptr) expr->bind();
     return *this;
 }
 
 bool expression::operator()() const {
+    assert(expr != nullptr);
     return (*expr)();
 }
 
@@ -41,8 +42,10 @@ bool expression::operator==(expression const& other) const {
     if (expr == other.expr) {
         return true;
     }
+    assert(expr != nullptr && other.expr != nullptr);
     return *expr == *other.expr;
 }
+
 
 _expr const *expression::operator->() const {
     return expr;

@@ -34,10 +34,9 @@ public:
 class expression {
     _expr* expr;
 
-    expression() {}
-
 public:
 
+    expression() {}
     expression(_expr* expr);
     expression(expression const& other);
 

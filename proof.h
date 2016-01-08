@@ -5,12 +5,24 @@
 #ifndef MATHLOGIC_PROOF_H
 #define MATHLOGIC_PROOF_H
 
-
-#include <iosfwd>
+#include <vector>
+#include <ostream>
+#include "expression.h"
 
 class proof {
+
+    std::vector<expression> supposes, proof_list;
+    expression statement;
+
 public:
-    proof(std::ifstream& input);
+
+    proof(const std::vector<expression> &supposes,
+          const std::vector<expression> &proof_list,
+          const expression &statement);
+
+    proof(proof const& other);
+
+    friend std::ostream & operator<<(std::ostream& ostream, proof const& _proof);
 };
 
 

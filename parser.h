@@ -7,6 +7,7 @@
 
 
 #include "expression.h"
+#include "proof.h"
 
 #include <string>
 #include <map>
@@ -40,6 +41,8 @@ public:
 
     expression parse(std::string const &str, bool is_scheme_parsing = false);
     expression parse(std::istream& input, bool is_scheme_parsing = false);
+
+    proof parse_proof(std::istream& input);
 };
 
 
