@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "parser.h"
-#include "axiomas.h"
+#include "axioms.h"
 
 parser p;
 
@@ -74,9 +74,9 @@ int main() {
 
     A = find_variable("A");
     B = find_variable("B");
-    auto axiomas = get_axiomas();
+    auto axiomas = get_axioms();
     for (size_t i = 0; i < axiomas.size(); ++i) {
-        std::cout << axioma_names[i] << " = "<< axiomas[i]->to_string() << '\n';
+        std::cout << axiom_names[i] << " = " << axiomas[i]->to_string() << '\n';
     }
 
     std::cout << (*impl1 == *impl2) << '\n';

@@ -8,7 +8,7 @@
 #include "parser.h"
 #include <vector>
 
-static std::string axioma_names[]{
+static std::string axiom_names[]{
     "X->Y->X",
     "(X->Y)->(X->Y->Z)->(X->Z)",
     "X->Y->X&Y",
@@ -21,13 +21,13 @@ static std::string axioma_names[]{
     "!!X->X"
 };
 
-std::vector<expression const*> get_axiomas() {
+std::vector<expression const*> get_axioms() {
     parser axioma_parser;
-    std::vector<expression const*> axiomas;
+    std::vector<expression const*> axioms;
     for (int i = 0; i < 10; ++i) {
-        axiomas.push_back(axioma_parser.parse(axioma_names[i], true));
+        axioms.push_back(axioma_parser.parse(axiom_names[i], true));
     }
-    return axiomas;
+    return axioms;
 };
 
 

@@ -10,7 +10,9 @@ set(UTIL
         parser.h
         expression_storage.cpp
         expression_storage.h
-        axiomas.h)
+        axioms.h
+        proof.cpp
+        proof.h)
 
 set(PROBLEM_A pr_a.cpp ${UTIL})
 

@@ -6,13 +6,16 @@
 #include "parser.h"
 
 #define LEXEM_END 0
-#define LEXEM_OBR 1
-#define LEXEM_CBR 2
-#define LEXEM_VAR_NAME 3
-#define LEXEM_IMPLICATION 4
-#define LEXEM_CONJUNCTION 5
-#define LEXEM_DISJUNCTION 6
-#define LEXEM_NEGATION 7
+#define LEXEM_NEW_LINE 1
+#define LEXEM_COMMA 2
+#define LEXEM_SEPARATOR 3
+#define LEXEM_OBR 4
+#define LEXEM_CBR 5
+#define LEXEM_VAR_NAME 6
+#define LEXEM_IMPLICATION 10
+#define LEXEM_CONJUNCTION 11
+#define LEXEM_DISJUNCTION 12
+#define LEXEM_NEGATION 13
 
 
 void parser::nextLex() {
@@ -31,10 +34,21 @@ void parser::nextLex() {
             lexem = LEXEM_CONJUNCTION;
             break;
         case '|' :
+            if (str[index + 1] == '-') {
+                lexem = LEXEM_SEPARATOR;
+                index++;
+                break;
+            }
             lexem = LEXEM_DISJUNCTION;
             break;
         case '!' :
             lexem = LEXEM_NEGATION;
+            break;
+        case ',' :
+            lexem = LEXEM_COMMA;
+            break;
+        case '\n' :
+            lexem = LEXEM_NEW_LINE;
             break;
         case '\0' :
             lexem = LEXEM_END;
