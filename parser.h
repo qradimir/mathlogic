@@ -10,15 +10,13 @@
 
 #include <string>
 #include <map>
-
+#include <istream>
 
 
 class parser {
 
+    std::istream* input;
 
-    std::string str;
-
-    size_t index;
     size_t lexem;
     std::string last_ref_name;
 
@@ -41,6 +39,7 @@ public:
     ~parser();
 
     expression const* parse(std::string const &str, bool is_scheme_parsing = false);
+    expression const* parse(std::istream& input, bool is_scheme_parsing = false);
 };
 
 

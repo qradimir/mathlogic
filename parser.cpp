@@ -3,6 +3,7 @@
 //
 
 #include <assert.h>
+#include <sstream>
 #include "parser.h"
 
 #define LEXEM_END 0
@@ -19,7 +20,15 @@
 
 
 void parser::nextLex() {
-    switch(str[index]) {
+    char c;
+    while (input->get(c) && c == ' ') {
+    }
+    if (!input) {
+        lexem = LEXEM_END;
+        return;
+    }
+
+    switch(c) {
         case '(' :
             lexem = LEXEM_OBR;
             break;
@@ -28,15 +37,15 @@ void parser::nextLex() {
             break;
         case '-' :
             lexem = LEXEM_IMPLICATION;
-            index++;
+            input->get();
             break;
         case '&' :
             lexem = LEXEM_CONJUNCTION;
             break;
         case '|' :
-            if (str[index + 1] == '-') {
+            if (input->peek() == '-') {
                 lexem = LEXEM_SEPARATOR;
-                index++;
+                input->get();
                 break;
             }
             lexem = LEXEM_DISJUNCTION;
@@ -54,18 +63,18 @@ void parser::nextLex() {
             lexem = LEXEM_END;
             break;
         default:
-            assert((str[index] >= 'A' && str[index] <= 'Z'));
+            assert((c >= 'A' && c <= 'Z'));
 
             lexem = LEXEM_VAR_NAME;
-            size_t t = index;
-            index++;
-            while(str[index] >= 'A' && str[index] <= 'Z' || str[index] >= '0' && str[index] <= '9') {
-                index++;
+            last_ref_name = c;
+            char symb;
+            while(input->get(symb) && symb >= 'A' && symb <= 'Z' || symb >= '0' && symb <= '9') {
+                last_ref_name += symb;
             }
-            last_ref_name = str.substr(t, index - t);
-            return;
+            if (input) {
+                input->putback(symb);
+            }
     }
-    index++;
 }
 
 expression const* parser::parse_implication() {
@@ -141,13 +150,18 @@ parser::~parser() {
 }
 
 expression const* parser::parse(std::string const &str, bool is_scheme_parcing) {
-    this->str = str;
-    index = 0;
+    std::istringstream* input = new std::istringstream(str);
+    auto ptr = parse(*input, is_scheme_parcing);
+    delete(input);
+    return ptr;
+}
+
+expression const* parser::parse(std::istream& input, bool is_scheme_parsing) {
+    this->input = &input;
     last_ref_name = "";
-    this->is_scheme_parsing = is_scheme_parcing;
+    this->is_scheme_parsing = is_scheme_parsing;
     nextLex();
     auto ptr = parse_implication();
     add_to_release(ptr);
     return ptr;
 }
-
