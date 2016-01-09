@@ -8,6 +8,7 @@ set(UTIL
         expression.h
         parser.cpp
         parser.h
+        axioms.cpp
         axioms.h
         proof.cpp
         proof.h)

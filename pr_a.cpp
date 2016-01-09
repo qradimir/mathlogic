@@ -5,7 +5,6 @@
 #include <iostream>
 #include <fstream>
 #include "parser.h"
-#include "axioms.h"
 
 int main ( int argc, char *argv[] ) {
     if (argc < 2) {
@@ -14,6 +13,9 @@ int main ( int argc, char *argv[] ) {
     }
     std::ifstream input(argv[1]);
     parser p;
-    std::cout << p.parse_proof(input);
+    proof _proof = p.parse_proof(input);
+    _proof.annotate();
+    std::cout << _proof.annotation();
+    release();
     return 0;
 }

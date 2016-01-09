@@ -5,8 +5,9 @@
 #ifndef MATHLOGIC_AXIOMAS_H
 #define MATHLOGIC_AXIOMAS_H
 
-#include "parser.h"
+#include "expression.h"
 #include <vector>
+#include <string>
 
 static std::string axiom_names[]{
     "X->Y->X",
@@ -21,15 +22,9 @@ static std::string axiom_names[]{
     "!!X->X"
 };
 
-static std::vector<expression> get_axioms() {
-    parser axiom_parser;
-    std::vector<expression> axioms;
-    for (int i = 0; i < 10; ++i) {
-        axioms.push_back(axiom_parser.parse(axiom_names[i], true));
-    }
-    return axioms;
-};
+std::vector<expression> get_axioms();
 
+int is_axiom(expression const& expr);
 
 
 #endif //MATHLOGIC_AXIOMAS_H

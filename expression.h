@@ -46,6 +46,7 @@ public:
 
     bool operator()() const;
     bool operator==(expression const& other) const;
+    bool operator!=(expression const& other) const;
 
     _expr const* operator->() const;
 
@@ -176,29 +177,10 @@ public:
 
 expression make_expression_link_ref(expression_link* ref);
 
-static connective negation(
-        [] (bool* args) -> bool { return !args[0]; },
-        [] (expression const* storage) -> std::string { return "!" + storage[0]->to_bounded_string(1); },
-        1, 1
-);
-
-static connective conjunction(
-        [] (bool* args) -> bool { return args[0] & args[1]; },
-        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(2) + "&" + storage[1]->to_bounded_string(2); },
-        2, 2
-);
-
-static connective disjunction(
-        [] (bool* args) -> bool { return args[0] | args[1]; },
-        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "|" + storage[1]->to_bounded_string(3); },
-        3, 2
-);
-
-static connective implication(
-        [] (bool* args) -> bool { return !args[0] | args[1]; },
-        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "->" + storage[1]->to_bounded_string(4); },
-        4, 2
-);
+connective* get_implication();
+connective* get_disjunction();
+connective* get_conjunction();
+connective* get_negation();
 
 variable* find_variable(std::string const& name);
 expression_link* find_expression_link(std::string const& name);

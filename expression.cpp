@@ -47,6 +47,10 @@ bool expression::operator==(expression const& other) const {
 }
 
 
+bool expression::operator!=(expression const &other) const {
+    return !(*this == other);
+}
+
 _expr const *expression::operator->() const {
     return expr;
 }
@@ -200,7 +204,15 @@ bool operation::equals(_expr const &other) const {
         return false;
     }
     operation const& op = dynamic_cast<operation const&>(other);
-    return conn == op.conn && storage == op.storage;
+    if (conn != op.conn) {
+        return false;
+    }
+    for (int i = 0; i < conn->sub_count; ++i) {
+        if (storage[i] != op.storage[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool variable_ref::equals(_expr const &other) const {
@@ -249,6 +261,47 @@ expression_link *find_expression_link(std::string const &name) {
         return nullptr;
     }
     return it->second;
+}
+
+connective negation(
+        [] (bool* args) -> bool { return !args[0]; },
+        [] (expression const* storage) -> std::string { return "!" + storage[0]->to_bounded_string(1); },
+        1, 1
+);
+
+connective conjunction(
+        [] (bool* args) -> bool { return args[0] & args[1]; },
+        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(2) + "&" + storage[1]->to_bounded_string(2); },
+        2, 2
+);
+
+connective disjunction(
+        [] (bool* args) -> bool { return args[0] | args[1]; },
+        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "|" + storage[1]->to_bounded_string(3); },
+        3, 2
+);
+
+connective implication(
+        [] (bool* args) -> bool { return !args[0] | args[1]; },
+        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "->" + storage[1]->to_bounded_string(4); },
+        4, 2
+);
+
+
+connective *get_implication() {
+    return &implication;
+}
+
+connective *get_disjunction() {
+    return &disjunction;
+}
+
+connective *get_conjunction() {
+    return &conjunction;
+}
+
+connective *get_negation() {
+    return &negation;
 }
 
 std::ostream &operator<<(std::ostream &stream, expression const &expr) {

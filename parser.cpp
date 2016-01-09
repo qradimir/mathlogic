@@ -81,7 +81,7 @@ expression parser::parse_implication() {
     expression impl = parse_disjunction();
     if (lexem == LEXEM_IMPLICATION) {
         nextLex();
-        return make_operation(&implication, impl, parse_implication());
+        return make_operation(get_implication(), impl, parse_implication());
     } else {
         return impl;
     }
@@ -91,7 +91,7 @@ expression parser::parse_disjunction() {
     expression disj = parse_conjunction();
     while (lexem == LEXEM_DISJUNCTION) {
         nextLex();
-        disj = make_operation(&disjunction, disj, parse_conjunction());
+        disj = make_operation(get_disjunction(), disj, parse_conjunction());
     }
     return disj;
 }
@@ -100,7 +100,7 @@ expression parser::parse_conjunction() {
     expression conj = parse_negation();
     while (lexem == LEXEM_CONJUNCTION) {
         nextLex();
-        conj = make_operation(&conjunction, conj, parse_negation());
+        conj = make_operation(get_conjunction(), conj, parse_negation());
     }
     return conj;
 }
@@ -108,7 +108,7 @@ expression parser::parse_conjunction() {
 expression parser::parse_negation() {
     if (lexem == LEXEM_NEGATION) {
         nextLex();
-        return make_operation(&negation, parse_negation());
+        return make_operation(get_negation(), parse_negation());
     }
     if (lexem == LEXEM_OBR) {
         nextLex();
