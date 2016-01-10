@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <sstream>
+#include <iostream>
 #include "parser.h"
 
 #define LEXEM_END 0
@@ -21,13 +22,10 @@
 
 void parser::nextLex() {
     char c;
-    while (input->get(c) && c == ' ') {
-    }
-    if (!input) {
+    if (!input->get(c)) {
         lexem = LEXEM_END;
         return;
     }
-
     switch(c) {
         case '(' :
             lexem = LEXEM_OBR;
@@ -185,6 +183,7 @@ proof parser::parse_proof(std::istream &input) {
             break;
         }
         proof_list.push_back(parse_implication());
+//        std::cout << "parsed " << proof_list.back() << '\n';
     }
-    return proof(supposes, proof_list, statement);
+    return proof(std::move(supposes), std::move(proof_list), std::move(statement));
 }

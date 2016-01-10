@@ -14,7 +14,7 @@ std::map<std::string, expression_link*> expr_links;
 expression::expression(_expr *expr)
     : expr(expr)
 {
-    expr->bind();
+    if (expr != nullptr) expr->bind();
 }
 
 expression::expression(expression const &other)
@@ -22,8 +22,13 @@ expression::expression(expression const &other)
 {
 }
 
+expression::expression(expression &&other)
+        : expression(other.expr)
+{
+}
+
 expression::~expression() {
-    expr->unbind();
+    if (expr != nullptr) expr->unbind();
 }
 
 expression &expression::operator=(expression const &other) {

@@ -16,23 +16,12 @@ struct _ann {
     _ann(_ann const& other) : _ann(other.type, other.arg0, other.arg1) { }
 };
 
-class annotated_expression {
-public:
-    const expression e;
-    const size_t num;
-    const _ann ann;
-
-    annotated_expression(const expression &e, size_t num, const _ann &ann);
-
-    friend std::ostream& operator<<(std::ostream& ostream, annotated_expression const& ann_expr);
-};
-
 class proof {
 
     std::vector<expression> supposes, proof_list;
     expression statement;
 
-    std::vector<annotated_expression> ann_proof_list;
+    std::vector<_ann> annotations;
     bool is_annotated, _annotation;
 
 public:
@@ -40,6 +29,8 @@ public:
     proof(const std::vector<expression> &supposes,
           const std::vector<expression> &proof_list,
           const expression &statement);
+
+    proof(std::vector<expression> &&supposes, std::vector<expression> &&proof_list, expression const& statement);
 
     proof(proof const& other);
 

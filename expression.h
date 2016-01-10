@@ -39,6 +39,7 @@ public:
     expression() {}
     expression(_expr* expr);
     expression(expression const& other);
+    expression(expression&& other);
 
      ~expression();
 
