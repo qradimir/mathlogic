@@ -17,6 +17,7 @@ public:
     virtual bool operator()() const = 0;
     virtual std::string to_string() const = 0;
     virtual size_t get_priority() const = 0;
+    virtual size_t hash() const = 0;
 
     inline void bind() { binds++; }
     inline void unbind() { binds--; if (binds == 0) delete(this); }
@@ -75,8 +76,12 @@ class operation : public _expr {
 
     expression* storage;
 
+    size_t __hash;
+
 protected:
     virtual bool equals(_expr const &other) const;
+
+    void count_hash();
 
     operation();
     operation(connective const *conn, expression* storage);
@@ -93,6 +98,9 @@ public:
     virtual bool operator()() const;
     virtual std::string to_string() const;
     virtual size_t get_priority() const;
+
+
+    virtual size_t hash() const;
 
     friend expression make_operation(connective const* conn, expression const& arg1);
     friend expression make_operation(connective const* conn, expression const& arg1, expression const& arg2);
@@ -150,6 +158,9 @@ public:
     virtual std::string to_string() const;
     virtual size_t get_priority() const;
 
+
+    virtual size_t hash() const;
+
     friend expression make_variable_ref(variable* ref);
 };
 
@@ -172,6 +183,7 @@ public:
     virtual bool operator()() const;
     virtual std::string to_string() const;
     virtual size_t get_priority() const;
+    virtual size_t hash() const;
 
     friend expression make_expression_link_ref(expression_link* ref);
 };

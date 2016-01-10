@@ -7,6 +7,8 @@
 
 #include "expression.h"
 
+#define HASHED(value) __hash = 31 * __hash + (size_t)(value)
+
 std::map<std::string, variable*> vars;
 std::map<std::string, expression_link*> expr_links;
 
@@ -86,7 +88,7 @@ operation::operation()
 }
 
 operation::operation(const operation &other)
-    : conn(other.conn), storage(other.storage)
+    : operation(other.conn, other.storage)
 {
 }
 
@@ -119,6 +121,7 @@ expression* copy_storage(size_t count, expression* storage) {
 operation::operation(connective const *conn, expression *storage)
     : conn(conn), storage(copy_storage(conn->sub_count, storage))
 {
+    count_hash();
 }
 
 
@@ -311,4 +314,24 @@ connective *get_negation() {
 
 std::ostream &operator<<(std::ostream &stream, expression const &expr) {
     return stream << expr->to_string();
+}
+
+size_t operation::hash() const {
+    return __hash;
+}
+
+void operation::count_hash() {
+    __hash = 0;
+    HASHED(conn);
+    for (int i = 0; i < conn->sub_count; ++i) {
+        HASHED(storage[i]->hash());
+    }
+}
+
+size_t variable_ref::hash() const {
+    return (size_t) ref;
+}
+
+size_t expression_link_ref::hash() const {
+    return (size_t) ref;
 }

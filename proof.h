@@ -9,6 +9,13 @@
 #include <ostream>
 #include "expression.h"
 
+namespace std {
+    template<>
+    struct hash<expression> {
+        size_t operator()(expression e) const noexcept { return e->hash(); }
+    };
+}
+
 struct _ann {
     size_t type, arg0, arg1;
 

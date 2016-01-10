@@ -3,6 +3,8 @@
 //
 
 #include <iostream>
+#include <unordered_set>
+#include <bits/unordered_map.h>
 #include "proof.h"
 #include "axioms.h"
 
@@ -75,36 +77,37 @@ void proof::annotate() {
         return;
 
     int ax_num;
+    std::unordered_map<expression, int> expr_set{proof_list.size(), std::hash<expression>{}};
     for (size_t i = 0; i < proof_list.size(); ++i) {
+        bool found = false;
         if ((ax_num = is_axiom(proof_list[i])) >= 0) {
             annotations.push_back(_ann(ANN_AXIOM, (size_t)ax_num));
-            continue;
+            found = true;
         }
-        bool found = false;
-        for (size_t j = 0; j < supposes.size(); ++j) {
-            if (proof_list[i] == supposes[j]) {
-                annotations.push_back(_ann(ANN_SUPPOSE, j));
-                found = true;
-                break;
-            }
-        }
-        if (found) continue;
-        for (size_t j = 0; j < i; ++j) {
-            if (annotations[j].type == ANN_UNDEF) {
-                continue;
-            }
-            expression t = make_operation(get_implication(), proof_list[j], proof_list[i]);
-            for (size_t k = 0; k < i; ++k) {
-                if (t == proof_list[k]) {
-                    annotations.push_back(_ann(ANN_MODUS_PONENS, j, k));
+        if (!found){
+            for (size_t j = 0; j < supposes.size(); ++j) {
+                if (proof_list[i] == supposes[j]) {
+                    annotations.push_back(_ann(ANN_SUPPOSE, j));
                     found = true;
                     break;
                 }
             }
-            if (found) break;
         }
-        if (found) continue;
-        annotations.push_back(_ann(ANN_UNDEF));
+        if (!found) {
+            for (auto it = expr_set.begin(); it != expr_set.end(); ++it) {
+                auto _expr = expr_set.find(make_operation(get_implication(), it->first, proof_list[i]));
+                if (_expr != expr_set.end()) {
+                    annotations.push_back(_ann(ANN_MODUS_PONENS, it->second, _expr->second));
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found) {
+            annotations.push_back(_ann(ANN_UNDEF));
+        } else {
+            expr_set.insert(std::make_pair(proof_list[i], i));
+        }
     }
 
     is_annotated = true;
