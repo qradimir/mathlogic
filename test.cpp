@@ -4,7 +4,8 @@
 #include "parser.h"
 #include "axioms.h"
 
-parser p;
+expression_parser eparser;
+scheme_parser shparser;
 
 variable *A;
 variable *B;
@@ -16,7 +17,7 @@ void log(expression const&  e) {
 }
 
 expression add_test(std::string const& str) {
-    expression expr = p.parse(str);
+    expression expr = eparser.parse(str);
     exprs.insert(exprs.end(), expr);
     return expr;
 }
@@ -28,13 +29,13 @@ expression gen_expr(size_t w) {
     }
     switch (t % 4) {
         case 0 :
-            return make_operation(&implication, gen_expr(w - 1), gen_expr(w - 1));
+            return make_operation(get_implication(), gen_expr(w - 1), gen_expr(w - 1));
         case 1 :
-            return make_operation(&disjunction, gen_expr(w - 1), gen_expr(w - 1));
+            return make_operation(get_disjunction(), gen_expr(w - 1), gen_expr(w - 1));
         case 2 :
-            return make_operation(&conjunction, gen_expr(w - 1), gen_expr(w - 1));
+            return make_operation(get_disjunction(), gen_expr(w - 1), gen_expr(w - 1));
         case 3 :
-            return make_operation(&negation, gen_expr(w - 1));
+            return make_operation(get_negation(), gen_expr(w - 1));
         default:
             return make_variable_ref(A);
     }
@@ -74,10 +75,6 @@ int main() {
 
     A = find_variable("A");
     B = find_variable("B");
-    auto axioms = get_axioms();
-    for (size_t i = 0; i < axioms.size(); ++i) {
-        std::cout << axiom_names[i] << " = " << axioms[i] << '\n';
-    }
 
     std::cout << (impl1 == impl2) << '\n';
 
@@ -85,11 +82,10 @@ int main() {
         std::cout << *it << " is " << (*it)->to_string() << '\n';
     }
 
-    expression implication_scheme= p.parse("A->B", true);
-    std::cout << implication_scheme;
+    expression_scheme implication_scheme= shparser.parse("A->B");
 
     for (auto it = exprs.begin(); it != exprs.end(); ++it) {
-        std::cout << *it << " is " << ((*it == implication_scheme) ? "implication" : "not implication") << '\n';
+        std::cout << *it << " is " << (implication_scheme.match(*it) ? "implication" : "not implication") << '\n';
     }
 
     for (size_t i = 10; i < 30; i += 3) {
@@ -101,6 +97,7 @@ int main() {
     test(true, false);
     test(true, true);
 
-    release();
+    release_variables();
+    release_expression_links();
     return 0;
 }

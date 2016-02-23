@@ -8,10 +8,14 @@
 #include <functional>
 #include <assert.h>
 
-class _expr {
+/*
+ *  Expression
+ */
+
+class expr {
     int binds = 0;
 protected:
-    virtual bool equals(_expr const& other) const = 0;
+    virtual bool equals(expr const& other) const = 0;
 
 public:
     virtual bool operator()() const = 0;
@@ -22,23 +26,24 @@ public:
     inline void bind() { binds++; }
     inline void unbind() { binds--; if (binds == 0) delete(this); }
 
-    bool operator==(_expr const& other) const;
+    bool operator==(expr const& other) const;
 
     std::string to_bounded_string(int priority) const {
         return (priority < this->get_priority()) ? '(' + this->to_string() + ')' : this->to_string();
     }
 
-    virtual ~_expr() {
+    virtual ~expr() {
     }
 };
 
 class expression {
-    _expr* expr;
+    expr * e;
+
+    expression() {}
 
 public:
 
-    expression() {}
-    expression(_expr* expr);
+    expression(expr * e);
     expression(expression const& other);
     expression(expression&& other);
 
@@ -50,7 +55,13 @@ public:
     bool operator==(expression const& other) const;
     bool operator!=(expression const& other) const;
 
-    _expr const* operator->() const;
+    inline expr const* operator->() const {
+        return e;
+    }
+
+    inline expr const& get() const {
+        return *e;
+    }
 
     friend expression* copy_storage(size_t count, expression* storage);
 };
@@ -70,16 +81,16 @@ public:
 
 };
 
-class operation : public _expr {
+class operation : public expr {
 
     connective const* conn;
 
     expression* storage;
 
-    size_t __hash;
+    size_t hash_value;
 
 protected:
-    virtual bool equals(_expr const &other) const;
+    virtual bool equals(expr const &other) const;
 
     void count_hash();
 
@@ -91,9 +102,9 @@ public:
 
     ~operation();
 
+    inline connective const *get_conn() const;
     inline size_t get_sub_count() const;
-
-    inline expression const& get_sub(size_t i) const;
+    inline expression const &get_sub(size_t i) const;
 
     virtual bool operator()() const;
     virtual std::string to_string() const;
@@ -108,6 +119,10 @@ public:
 
 expression make_operation(connective const* conn, expression const& arg1);
 expression make_operation(connective const* conn, expression const& arg1, expression const& arg2);
+
+inline connective const *operation::get_conn() const {
+    return conn;
+}
 
 inline size_t operation::get_sub_count() const {
     return conn->sub_count;
@@ -126,28 +141,14 @@ public:
 
 };
 
-class expression_link {
-public:
-    _expr const* value;
-    std::string name;
-
-    inline bool operator()() {
-        assert(value != nullptr);
-
-        return value->operator()();
-    }
-
-    expression_link(std::string const& name, _expr const* value = nullptr);
-};
-
-class variable_ref : public _expr {
+class variable_ref : public expr {
 
     variable* ref;
 
     variable_ref(variable* ref);
 
 protected:
-    virtual bool equals(_expr const &other) const;
+    virtual bool equals(expr const &other) const;
 
 public:
     inline variable& operator->() {
@@ -166,39 +167,14 @@ public:
 
 expression make_variable_ref(variable* ref);
 
-class expression_link_ref : public _expr {
-
-    expression_link* const ref;
-
-    expression_link_ref(expression_link* ref);
-
-protected:
-    virtual bool equals(_expr const& other) const;
-
-public:
-    inline expression_link const& operator->() {
-        return *ref;
-    }
-
-    virtual bool operator()() const;
-    virtual std::string to_string() const;
-    virtual size_t get_priority() const;
-    virtual size_t hash() const;
-
-    friend expression make_expression_link_ref(expression_link* ref);
-};
-
-expression make_expression_link_ref(expression_link* ref);
-
 connective* get_implication();
 connective* get_disjunction();
 connective* get_conjunction();
 connective* get_negation();
 
 variable* find_variable(std::string const& name);
-expression_link* find_expression_link(std::string const& name);
 
 
-void release();
+void release_variables();
 
 #endif //MATHLOGIC_EXPRESSION_H

@@ -17,12 +17,14 @@ int main ( int argc, char *argv[] ) {
     std::ifstream input(argv[1]);
     std::ofstream output(argv[2]);
     INIT_TIME
-    parser p;
-    proof _proof = p.parse_proof(input);
+    proof pr{input};
     LOG_TIME_DELTA(" - time to parse")
-    _proof.annotate();
+    pr.annotate();
     LOG_TIME_DELTA(" - time to annotate")
-    output << _proof.annotation();
-    release();
+    output << pr.annotation();
+
+    release_variables();
+    release_expression_links();
+
     return 0;
 }

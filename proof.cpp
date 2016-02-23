@@ -7,13 +7,11 @@
 #include <bits/unordered_map.h>
 #include "proof.h"
 #include "axioms.h"
+#include "parser.h"
 
-#define ANN_UNDEF 0
-#define ANN_AXIOM 1
-#define ANN_SUPPOSE 2
-#define ANN_MODUS_PONENS 3
 
-std::ostream& operator<<(std::ostream& stream, _ann const& ann) {
+
+std::ostream& operator<<(std::ostream& stream, ann_t const& ann) {
     switch (ann.type) {
         case ANN_UNDEF :
             return  stream << "Не доказано";
@@ -35,7 +33,7 @@ proof::proof(const std::vector<expression> &supposes,
         proof_list(proof_list),
         statement(statement),
         is_annotated(false),
-        _annotation(false)
+        show_ann(false)
 { }
 
 
@@ -46,7 +44,7 @@ proof::proof(std::vector<expression> &&supposes,
         proof_list(std::move(proof_list)),
         statement(statement),
         is_annotated(false),
-        _annotation(false)
+        show_ann(false)
 { }
 
 proof::proof(proof const &other)
@@ -63,7 +61,7 @@ std::ostream &operator<<(std::ostream& ostream, proof const&_) {
     }
     ostream << "|-" << _.statement << '\n';
     for(size_t i  = 0; i < _.proof_list.size(); ++i) {
-        if (_._annotation && _.is_annotated) {
+        if (_.show_ann && _.is_annotated) {
             ostream << "(" << i + 1 << ") " <<  _.proof_list[i] << " (" << _.annotations[i] << ")" << '\n';
         } else {
             ostream << _.proof_list[i] << '\n';
@@ -81,13 +79,13 @@ void proof::annotate() {
     for (size_t i = 0; i < proof_list.size(); ++i) {
         bool found = false;
         if ((ax_num = is_axiom(proof_list[i])) >= 0) {
-            annotations.push_back(_ann(ANN_AXIOM, (size_t)ax_num));
+            annotations.push_back(ann_t(ann_t::ANN_AXIOM, (size_t)ax_num));
             found = true;
         }
         if (!found){
             for (size_t j = 0; j < supposes.size(); ++j) {
                 if (proof_list[i] == supposes[j]) {
-                    annotations.push_back(_ann(ANN_SUPPOSE, j));
+                    annotations.push_back(ann_t(ann_t::ANN_SUPPOSE, j));
                     found = true;
                     break;
                 }
@@ -97,18 +95,42 @@ void proof::annotate() {
             for (auto it = expr_set.begin(); it != expr_set.end(); ++it) {
                 auto _expr = expr_set.find(make_operation(get_implication(), it->first, proof_list[i]));
                 if (_expr != expr_set.end()) {
-                    annotations.push_back(_ann(ANN_MODUS_PONENS, it->second, _expr->second));
+                    annotations.push_back(ann_t(ann_t::ANN_MODUS_PONENS, it->second, _expr->second));
                     found = true;
                     break;
                 }
             }
         }
         if (!found) {
-            annotations.push_back(_ann(ANN_UNDEF));
+            annotations.push_back(ann_t(ann_t::ANN_UNDEF));
         } else {
             expr_set.insert(std::make_pair(proof_list[i], i));
         }
     }
 
     is_annotated = true;
+}
+
+proof::proof(std::istream& s)
+    : supposes{}, statement{nullptr}, proof_list{}
+{
+    parser<expression> p = get_expression_parser();
+    p.input = &s;
+    p.nextLex();
+    if (p.lexem != parser<expression>::LEXEM_SEPARATOR) {
+        supposes.push_back(p.parse_implication());
+        while (p.lexem != parser<expression>::LEXEM_SEPARATOR) {
+            p.nextLex();
+            supposes.push_back(p.parse_implication());
+        }
+    }
+    p.nextLex();
+    statement = p.parse_implication();
+    while (p.lexem == parser<expression>::LEXEM_NEW_LINE) {
+        p.nextLex();
+        if (p.lexem == parser<expression>::LEXEM_END) {
+            break;
+        }
+        proof_list.push_back(p.parse_implication());
+    }
 }

@@ -6,6 +6,7 @@
 #define MATHLOGIC_AXIOMAS_H
 
 #include "expression.h"
+#include "expression_scheme.h"
 #include <vector>
 #include <string>
 
@@ -22,7 +23,7 @@ static std::string axiom_names[]{
     "!!X->X"
 };
 
-std::vector<expression> get_axioms();
+std::vector<expression_scheme> get_axioms();
 
 int is_axiom(expression const& expr);
 

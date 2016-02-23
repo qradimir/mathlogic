@@ -16,11 +16,17 @@ namespace std {
     };
 }
 
-struct _ann {
+struct ann_t {
+
+    static const size_t ANN_UNDEF  = 0;
+    static const size_t ANN_AXIOM  = 1;
+    static const size_t ANN_SUPPOSE  = 2;
+    static const size_t ANN_MODUS_PONENS  = 3;
+
     size_t type, arg0, arg1;
 
-    _ann(size_t type, size_t arg0 = 0, size_t arg1 = 0) : type(type), arg0(arg0), arg1(arg1) { }
-    _ann(_ann const& other) : _ann(other.type, other.arg0, other.arg1) { }
+    ann_t(size_t type, size_t arg0 = 0, size_t arg1 = 0) : type(type), arg0(arg0), arg1(arg1) { }
+    ann_t(ann_t const& other) : ann_t(other.type, other.arg0, other.arg1) { }
 };
 
 class proof {
@@ -28,8 +34,8 @@ class proof {
     std::vector<expression> supposes, proof_list;
     expression statement;
 
-    std::vector<_ann> annotations;
-    bool is_annotated, _annotation;
+    std::vector<ann_t> annotations;
+    bool is_annotated, show_ann;
 
 public:
 
@@ -37,14 +43,17 @@ public:
           const std::vector<expression> &proof_list,
           const expression &statement);
 
-    proof(std::vector<expression> &&supposes, std::vector<expression> &&proof_list, expression const& statement);
+    proof(std::vector<expression> &&supposes,
+          std::vector<expression> &&proof_list,
+          expression const& statement);
 
     proof(proof const& other);
+    explicit proof(std::istream& s);
 
     friend std::ostream & operator<<(std::ostream& ostream, proof const& _proof);
 
-    inline proof& annotation(bool _annotation = true) {
-        this->_annotation = _annotation;
+    inline proof& annotation(bool show_ann = true) {
+        this->show_ann = show_ann;
         return *this;
     }
 

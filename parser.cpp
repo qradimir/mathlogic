@@ -2,188 +2,54 @@
 // Created by radimir on 02.01.16.
 //
 
-#include <assert.h>
 #include <sstream>
 #include <iostream>
 #include "parser.h"
 
-#define LEXEM_END 0
-#define LEXEM_NEW_LINE 1
-#define LEXEM_COMMA 2
-#define LEXEM_SEPARATOR 3
-#define LEXEM_OBR 4
-#define LEXEM_CBR 5
-#define LEXEM_VAR_NAME 6
-#define LEXEM_IMPLICATION 10
-#define LEXEM_CONJUNCTION 11
-#define LEXEM_DISJUNCTION 12
-#define LEXEM_NEGATION 13
-
-
-void parser::nextLex() {
-    char c;
-    if (!input->get(c)) {
-        lexem = LEXEM_END;
-        return;
-    }
-    switch(c) {
-        case '(' :
-            lexem = LEXEM_OBR;
-            break;
-        case ')' :
-            lexem = LEXEM_CBR;
-            break;
-        case '-' :
-            lexem = LEXEM_IMPLICATION;
-            input->get();
-            break;
-        case '&' :
-            lexem = LEXEM_CONJUNCTION;
-            break;
-        case '|' :
-            if (input->peek() == '-') {
-                lexem = LEXEM_SEPARATOR;
-                input->get();
-                break;
+parser<expression> get_expression_parser() {
+    return parser<expression>(
+            [](std::string s) {
+                auto ptr = find_variable(s);
+                if (ptr == nullptr) {
+                    ptr = new variable(s);
+                }
+                return make_variable_ref(ptr);
+            },
+            [](expression const& left, expression const& right) {
+                return make_operation(get_implication(), left, right);
+            },
+            [](expression const& left, expression const& right) {
+                return make_operation(get_disjunction(), left, right);
+            },
+            [](expression const& left, expression const& right) {
+                return make_operation(get_conjunction(), left, right);
+            },
+            [](expression const& t) {
+                return make_operation(get_negation(), t);
             }
-            lexem = LEXEM_DISJUNCTION;
-            break;
-        case '!' :
-            lexem = LEXEM_NEGATION;
-            break;
-        case ',' :
-            lexem = LEXEM_COMMA;
-            break;
-        case '\n' :
-            lexem = LEXEM_NEW_LINE;
-            break;
-        case '\0' :
-            lexem = LEXEM_END;
-            break;
-        default:
-            assert((c >= 'A' && c <= 'Z'));
+    );
+}
 
-            lexem = LEXEM_VAR_NAME;
-            last_ref_name = c;
-            char symb;
-            while(input->get(symb) && symb >= 'A' && symb <= 'Z' || symb >= '0' && symb <= '9') {
-                last_ref_name += symb;
+parser<expression_scheme> get_scheme_parser() {
+    return parser<expression_scheme>(
+            [](std::string s) {
+                auto ptr = find_expression_link(s);
+                if (ptr == nullptr) {
+                    ptr = new expression_link(s);
+                }
+                return make_expression_link_ref(ptr);
+            },
+            [](expression_scheme const& left, expression_scheme const& right) {
+                return make_operation_scheme(get_implication(), left, right);
+            },
+            [](expression_scheme const& left, expression_scheme const& right) {
+                return make_operation_scheme(get_disjunction(), left, right);
+            },
+            [](expression_scheme const& left, expression_scheme const& right) {
+                return make_operation_scheme(get_conjunction(), left, right);
+            },
+            [](expression_scheme const& t) {
+                return make_operation_scheme(get_negation(), t);
             }
-            if (input) {
-                input->putback(symb);
-            }
-    }
-}
-
-expression parser::parse_implication() {
-    expression impl = parse_disjunction();
-    if (lexem == LEXEM_IMPLICATION) {
-        nextLex();
-        return make_operation(get_implication(), impl, parse_implication());
-    } else {
-        return impl;
-    }
-}
-
-expression parser::parse_disjunction() {
-    expression disj = parse_conjunction();
-    while (lexem == LEXEM_DISJUNCTION) {
-        nextLex();
-        disj = make_operation(get_disjunction(), disj, parse_conjunction());
-    }
-    return disj;
-}
-
-expression parser::parse_conjunction() {
-    expression conj = parse_negation();
-    while (lexem == LEXEM_CONJUNCTION) {
-        nextLex();
-        conj = make_operation(get_conjunction(), conj, parse_negation());
-    }
-    return conj;
-}
-
-expression parser::parse_negation() {
-    if (lexem == LEXEM_NEGATION) {
-        nextLex();
-        return make_operation(get_negation(), parse_negation());
-    }
-    if (lexem == LEXEM_OBR) {
-        nextLex();
-        expression ret = parse_implication();
-        nextLex();
-        return ret;
-    }
-    return parse_reference();
-}
-
-
-inline expression parser::parse_reference() {
-    return (is_scheme_parsing ? parse_expression_link_ref() : parse_variable_ref());
-}
-
-expression parser::parse_variable_ref() {
-    auto ptr = find_variable(last_ref_name);
-    if (ptr == nullptr) {
-        ptr = new variable(last_ref_name);
-    }
-    nextLex();
-    return make_variable_ref(ptr);
-}
-
-
-expression parser::parse_expression_link_ref() {
-    auto ptr = find_expression_link(last_ref_name);
-    if (ptr == nullptr) {
-        ptr =  new expression_link(last_ref_name);
-    }
-    nextLex();
-    return make_expression_link_ref(ptr);
-}
-
-parser::parser() {
-}
-
-parser::~parser() {
-}
-
-expression parser::parse(std::string const &str, bool is_scheme_parcing) {
-    std::istringstream* input = new std::istringstream(str);
-    expression _ = parse(*input, is_scheme_parcing);
-    delete(input);
-    return _;
-}
-
-expression parser::parse(std::istream& input, bool is_scheme_parsing) {
-    this->input = &input;
-    last_ref_name = "";
-    this->is_scheme_parsing = is_scheme_parsing;
-    nextLex();
-    return parse_implication();
-}
-
-proof parser::parse_proof(std::istream &input) {
-    this->input = &input;
-    is_scheme_parsing = false;
-    nextLex();
-    std::vector<expression> supposes{};
-    if (lexem != LEXEM_SEPARATOR) {
-        supposes.push_back(parse_implication());
-        while (lexem != LEXEM_SEPARATOR) {
-            nextLex();
-            supposes.push_back(parse_implication());
-        }
-    }
-    nextLex();
-    expression statement = parse_implication();
-    std::vector<expression> proof_list{};
-    while (lexem == LEXEM_NEW_LINE) {
-        nextLex();
-        if (lexem == LEXEM_END) {
-            break;
-        }
-        proof_list.push_back(parse_implication());
-//        std::cout << "parsed " << proof_list.back() << '\n';
-    }
-    return proof(std::move(supposes), std::move(proof_list), std::move(statement));
+    );
 }
