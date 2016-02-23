@@ -90,19 +90,7 @@ operation::~operation() {
 }
 
 
-expression make_operation(connective const *conn, expression const &arg1) {
-    expression exprs[]{arg1};
-    expr *t = new operation(conn, exprs);
-    return expression(t);
-}
-
-expression make_operation(connective const *conn, expression const &arg1, expression const &arg2) {
-    expression exprs[]{arg1, arg2};
-    expr *t = new operation(conn, exprs);
-    return expression(t);
-}
-
-expression* copy_storage(size_t count, expression* storage) {
+expression* copy_storage(size_t count, expression *storage) {
     expression *t = new expression[count];
     for (size_t i = 0; i < count; ++i) {
         t[i].e = storage[i].e;
@@ -178,7 +166,11 @@ variable_ref::variable_ref(variable *ref)
 {
 }
 
-expression make_variable_ref(variable *ref) {
+expression make_variable_ref(std::string const &s) {
+    auto ref = find_variable(s);
+    if (ref == nullptr) {
+        ref = new variable(s);
+    }
     return expression(new variable_ref(ref));
 }
 
@@ -221,8 +213,6 @@ variable *find_variable(std::string const &name) {
     }
     return it->second;
 }
-
-
 
 /*
  *  connective
@@ -276,4 +266,8 @@ connective *get_negation() {
 
 std::ostream &operator<<(std::ostream &stream, expression const &expr) {
     return stream << expr->to_string();
+}
+
+expression make_operation(connective const* conn, expression *exprs) {
+    return expression(new operation(conn, exprs));
 }

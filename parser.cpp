@@ -9,11 +9,7 @@
 parser<expression> get_expression_parser() {
     return parser<expression>(
             [](std::string s) {
-                auto ptr = find_variable(s);
-                if (ptr == nullptr) {
-                    ptr = new variable(s);
-                }
-                return make_variable_ref(ptr);
+                return make_variable_ref(s);
             },
             [](expression const& left, expression const& right) {
                 return make_operation(get_implication(), left, right);
@@ -33,11 +29,7 @@ parser<expression> get_expression_parser() {
 parser<expression_scheme> get_scheme_parser() {
     return parser<expression_scheme>(
             [](std::string s) {
-                auto ptr = find_expression_link(s);
-                if (ptr == nullptr) {
-                    ptr = new expression_link(s);
-                }
-                return make_expression_link_ref(ptr);
+                return make_expression_link_ref(s);
             },
             [](expression_scheme const& left, expression_scheme const& right) {
                 return make_operation_scheme(get_implication(), left, right);

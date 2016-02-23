@@ -5,6 +5,8 @@
 #ifndef MATHLOGIC_EXPRESSION_SCHEME_H
 #define MATHLOGIC_EXPRESSION_SCHEME_H
 
+#include <map>
+
 class expression;
 class expr;
 class connective;
@@ -18,6 +20,7 @@ class expr_scheme {
 
 public:
     virtual bool match(expr const& e) const = 0;
+    virtual expression get_expression(std::map<std::string, expression> const &exprs) const = 0;
 
     inline void bind() { binds++; }
     inline void unbind() { binds--; if (binds == 0) delete(this); }
@@ -45,6 +48,7 @@ public:
     expr_scheme const *operator->() const;
 
     bool match(expression const &expr) const;
+    expression get_expression(std::map<std::string, expression> const &exprs) const;
 
 
     friend expression_scheme * copy_storage(size_t count, expression_scheme* storage);
@@ -61,6 +65,7 @@ protected:
 
 public:
     virtual bool match(expr const& e) const;
+    virtual expression get_expression(std::map<std::string, expression> const &exprs) const;
 
     friend expression_scheme make_operation_scheme(connective const* conn, expression_scheme const& arg1);
     friend expression_scheme make_operation_scheme(connective const* conn, expression_scheme const& arg1, expression_scheme const& arg2);
@@ -85,11 +90,13 @@ class expression_link_ref : public expr_scheme {
 
 public:
     virtual bool match(expr const& e) const;
+    virtual expression get_expression(std::map<std::string, expression> const &exprs) const;
 
-    friend expression_scheme make_expression_link_ref(expression_link* ref);
+    friend expression_scheme make_expression_link_ref(std::string const& name);
 };
 
-expression_scheme make_expression_link_ref(expression_link* ref);
+expression_scheme make_expression_link_ref(std::string const& name);
+
 expression_link *find_expression_link(std::string const& name);
 
 void release_expression_links();

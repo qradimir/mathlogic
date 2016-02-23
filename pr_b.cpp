@@ -1,5 +1,5 @@
 //
-// Created by radimir on 08.01.16.
+// Created by radimir on 23.02.16.
 //
 
 #include <iostream>
@@ -19,12 +19,9 @@ int main ( int argc, char *argv[] ) {
     INIT_TIME
     proof pr{input};
     LOG_TIME_DELTA(" - time to parse")
-    pr.annotate();
-    LOG_TIME_DELTA(" - time to annotate")
-    output << pr.annotation();
-
-    input.close();
-    output.close();
+    pr.deduce();
+    LOG_TIME_DELTA(" - time to deduce")
+    output << pr.annotation(false);
 
     release_variables();
     release_expression_links();

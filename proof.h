@@ -58,6 +58,7 @@ public:
     }
 
     void annotate();
+    void deduce();
 };
 
 

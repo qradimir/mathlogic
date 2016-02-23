@@ -49,6 +49,10 @@ bool expression_scheme::match(expression const &expr) const {
     return ret;
 }
 
+expression expression_scheme::get_expression(std::map<std::string, expression> const &exprs) const {
+    return e->get_expression(exprs);
+}
+
 expr_scheme const *expression_scheme::operator->() const {
     return e;
 }
@@ -73,6 +77,14 @@ bool operation_scheme::match(expr const &e) const {
     return true;
 }
 
+expression operation_scheme::get_expression(std::map<std::string, expression> const &exprs) const {
+    expression args[conn->sub_count];
+    for (size_t i = 0; i < conn->sub_count; ++i) {
+        args[i] = storage[i]->get_expression(exprs);
+    }
+    return make_operation(conn, args);
+}
+
 /*
  *  expression_link
  */
@@ -92,7 +104,13 @@ bool expression_link_ref::match(expr const &e) const {
         ref->value = &e;
         return true;
     }
-    return ref->value == &e;
+    return *ref->value == e;
+}
+
+expression expression_link_ref::get_expression(std::map<std::string, expression> const &exprs) const {
+    auto ptr = exprs.find(ref->name);
+    assert(ptr != exprs.end());
+    return ptr->second;
 }
 
 expression_link_ref::expression_link_ref(expression_link *ref)
@@ -100,7 +118,11 @@ expression_link_ref::expression_link_ref(expression_link *ref)
 {
 }
 
-expression_scheme make_expression_link_ref(expression_link *ref) {
+expression_scheme make_expression_link_ref(std::string const &s) {
+    auto ref = find_expression_link(s);
+    if (ref == nullptr) {
+        ref = new expression_link(s);
+    }
     return expression_scheme(new expression_link_ref(ref));
 }
 

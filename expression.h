@@ -39,10 +39,10 @@ public:
 class expression {
     expr * e;
 
-    expression() {}
 
 public:
 
+    expression() : e(nullptr) {}
     expression(expr * e);
     expression(expression const& other);
     expression(expression&& other);
@@ -113,12 +113,22 @@ public:
 
     virtual size_t hash() const;
 
+    friend expression make_operation(connective const* conn, expression *exprs);
     friend expression make_operation(connective const* conn, expression const& arg1);
     friend expression make_operation(connective const* conn, expression const& arg1, expression const& arg2);
 };
 
-expression make_operation(connective const* conn, expression const& arg1);
-expression make_operation(connective const* conn, expression const& arg1, expression const& arg2);
+expression make_operation(connective const* conn, expression *exprs);
+
+inline expression make_operation(connective const* conn, expression const& arg1) {
+    expression exprs[]{arg1};
+    return make_operation(conn, exprs);
+}
+
+inline expression make_operation(connective const* conn, expression const& arg1, expression const& arg2) {
+    expression exprs[]{arg1, arg2};
+    return make_operation(conn, exprs);
+}
 
 inline connective const *operation::get_conn() const {
     return conn;
@@ -162,10 +172,10 @@ public:
 
     virtual size_t hash() const;
 
-    friend expression make_variable_ref(variable* ref);
+    friend expression make_variable_ref(std::string const &s);
 };
 
-expression make_variable_ref(variable* ref);
+expression make_variable_ref(std::string const &s);
 
 connective* get_implication();
 connective* get_disjunction();
