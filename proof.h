@@ -30,7 +30,6 @@ struct ann_t {
 };
 
 class proof {
-
     std::vector<expression> supposes, proof_list;
     expression statement;
 
@@ -48,7 +47,9 @@ public:
           expression const& statement);
 
     proof(proof const& other);
+
     explicit proof(std::istream& s);
+    explicit proof(expression proofable);
 
     friend std::ostream & operator<<(std::ostream& ostream, proof const& _proof);
 

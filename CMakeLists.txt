@@ -18,4 +18,4 @@ set(UTIL
 
 add_executable(pr_a pr_a.cpp ${UTIL})
 add_executable(pr_b pr_b.cpp ${UTIL})
-#add_executable(tests test.cpp ${UTIL})
+add_executable(pr_c pr_c.cpp ${UTIL})

@@ -114,6 +114,18 @@ bool operation::operator()() const {
     return conn->evaluator(values);
 }
 
+void operation::get_variables(std::set<variable *> &variables) const {
+    for (size_t i = 0; i < get_sub_count(); ++i) {
+        get_sub(i)->get_variables(variables);
+    }
+}
+
+
+std::vector<expression> operation::build_vsproof() const {
+    //TODO build vsproof by children output
+    return std::vector<expression>();
+}
+
 std::string operation::to_string() const {
     return conn->str_getter(storage);
 }
@@ -174,8 +186,24 @@ expression make_variable_ref(std::string const &s) {
     return expression(new variable_ref(ref));
 }
 
+expression make_variable_ref(variable *ref) {
+    return expression(new variable_ref(ref));
+}
+
+
+std::vector<expression> variable_ref::build_vsproof() const {
+    std::vector<expression> ret{1};
+    expression e = make_variable_ref(ref);
+    ret.push_back(ref->value ? e : E_NEG(e));
+    return ret;
+}
+
 bool variable_ref::operator()() const{
     return ref->value;
+}
+
+void variable_ref::get_variables(std::set<variable *> &variables) const {
+    variables.insert(ref);
 }
 
 std::string variable_ref::to_string() const{

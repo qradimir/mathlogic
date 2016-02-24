@@ -31,9 +31,15 @@ static std::string a_impl_a_proof_s[]{
         "A->(A->A)->A",
         "A->A"
 };
-static expression_scheme mp_scheme_0 = axiom_parser.parse("Y->X");
-static expression_scheme mp_scheme_1 = axiom_parser.parse("(X->Y->Z)->(X->Z)");
-static expression_scheme mp_mp_scheme_1 = axiom_parser.parse("X->Z");
+
+//  Y->X
+static expression_scheme mp_scheme_0 = S_IMPL(S_REF(Y),S_REF(X));
+
+//  (X->Y->Z)->(X->Z)
+static expression_scheme mp_scheme_1 = S_IMPL(S_IMPL(S_REF(X),S_IMPL(S_REF(Y),S_REF(Z))),S_IMPL(S_REF(X),S_REF(Y)));
+
+//  X->Z
+static expression_scheme mp_mp_scheme_1 = S_IMPL(S_REF(X), S_REF(Z));
 
 
 std::vector<expression_scheme> get_axioms();

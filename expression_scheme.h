@@ -7,6 +7,12 @@
 
 #include <map>
 
+#define S_IMPL(arg0, arg1)  make_operation_scheme(get_implication(), arg0, arg1)
+#define S_CONJ(arg0, arg1)  make_operation_scheme(get_conjunction(), arg0, arg1)
+#define S_DISJ(arg0, arg1)  make_operation_scheme(get_disjunction(), arg0, arg1)
+#define S_NEG(arg0)         make_operation_scheme(get_negation(), arg0)
+#define S_REF(name)         make_expression_link_ref(#name)
+
 class expression;
 class expr;
 class connective;

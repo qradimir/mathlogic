@@ -12,16 +12,16 @@ parser<expression> get_expression_parser() {
                 return make_variable_ref(s);
             },
             [](expression const& left, expression const& right) {
-                return make_operation(get_implication(), left, right);
+                return E_IMPL(left, right);
             },
             [](expression const& left, expression const& right) {
-                return make_operation(get_disjunction(), left, right);
+                return E_DISJ(left, right);
             },
             [](expression const& left, expression const& right) {
-                return make_operation(get_conjunction(), left, right);
+                return E_CONJ(left, right);
             },
             [](expression const& t) {
-                return make_operation(get_negation(), t);
+                return E_NEG(t);
             }
     );
 }
@@ -32,16 +32,16 @@ parser<expression_scheme> get_scheme_parser() {
                 return make_expression_link_ref(s);
             },
             [](expression_scheme const& left, expression_scheme const& right) {
-                return make_operation_scheme(get_implication(), left, right);
+                return S_IMPL(left, right);
             },
             [](expression_scheme const& left, expression_scheme const& right) {
-                return make_operation_scheme(get_disjunction(), left, right);
+                return S_DISJ(left, right);
             },
             [](expression_scheme const& left, expression_scheme const& right) {
-                return make_operation_scheme(get_conjunction(), left, right);
+                return S_CONJ(left, right);
             },
             [](expression_scheme const& t) {
-                return make_operation_scheme(get_negation(), t);
+                return S_NEG(t);
             }
     );
 }

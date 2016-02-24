@@ -7,10 +7,21 @@
 
 #include <functional>
 #include <assert.h>
+#include <set>
+#include <vector>
+
+#define E_IMPL(arg0, arg1)  make_operation(get_implication(), arg0, arg1)
+#define E_CONJ(arg0, arg1)  make_operation(get_conjunction(), arg0, arg1)
+#define E_DISJ(arg0, arg1)  make_operation(get_disjunction(), arg0, arg1)
+#define E_NEG(arg0)         make_operation(get_negation(), arg0)
+#define E_REF(name)         make_variable_ref(#name)
 
 /*
  *  Expression
  */
+
+class variable;
+class expression;
 
 class expr {
     int binds = 0;
@@ -19,6 +30,8 @@ protected:
 
 public:
     virtual bool operator()() const = 0;
+    virtual void get_variables(std::set<variable *> &variables) const = 0;
+    virtual std::vector<expression> build_vsproof() const = 0;
     virtual std::string to_string() const = 0;
     virtual size_t get_priority() const = 0;
     virtual size_t hash() const = 0;
@@ -75,6 +88,7 @@ public:
     size_t priority;
     std::function<bool(bool*)> evaluator;
     std::function<std::string(expression const*)> str_getter;
+    //TODO add util for building vsproof
 
     connective(std::function<bool(bool*)> evaluator, std::function<std::string(expression const*)> str_getter,
                size_t priority, size_t sub_count);
@@ -107,10 +121,10 @@ public:
     inline expression const &get_sub(size_t i) const;
 
     virtual bool operator()() const;
+    virtual void get_variables(std::set<variable *> &variables) const;
+    virtual std::vector<expression> build_vsproof() const;
     virtual std::string to_string() const;
     virtual size_t get_priority() const;
-
-
     virtual size_t hash() const;
 
     friend expression make_operation(connective const* conn, expression *exprs);
@@ -166,15 +180,19 @@ public:
     }
 
     virtual bool operator()() const;
+    virtual void get_variables(std::set<variable *> &variables) const;
+    virtual std::vector<expression> build_vsproof() const;
     virtual std::string to_string() const;
     virtual size_t get_priority() const;
 
 
     virtual size_t hash() const;
 
+    friend expression make_variable_ref(variable *var);
     friend expression make_variable_ref(std::string const &s);
 };
 
+expression make_variable_ref(variable *ref);
 expression make_variable_ref(std::string const &s);
 
 connective* get_implication();

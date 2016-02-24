@@ -4,7 +4,7 @@
 
 #include <iostream>
 #include <unordered_set>
-#include <bits/unordered_map.h>
+#include <unordered_map>
 #include "proof.h"
 #include "axioms.h"
 
@@ -192,4 +192,53 @@ proof::proof(std::istream& s)
         }
         proof_list.push_back(p.parse_implication());
     }
+}
+
+void next(bool* values, size_t count) {
+    bool *first = values, *end = first + count;
+    for (; values != end && !*values; ++values) {
+    }
+    *values = true;
+    end = values;
+    for (values = first; values != end; ++values) {
+        *values = false;
+    }
+};
+
+std::vector<expression> make_supposes(std::vector<variable *> vars) {
+    std::vector<expression> ret{vars.size()};
+    for (auto it = vars.begin(); it != vars.end(); ++it) {
+        expression ref = make_variable_ref(*it);
+        ret.push_back(((*it)->value) ? ref : E_NEG(ref));
+    }
+    return ret;
+}
+
+proof::proof(expression proofable)
+    : supposes{},
+      statement{proofable},
+      proof_list{},
+      is_annotated(true),
+      show_ann(false)
+{
+    std::set<variable *> vars_{};
+    proofable->get_variables(vars_);
+
+    std::vector<variable *> vars{vars_.begin(), vars_.end()};
+    bool values[vars.size()];
+    size_t count  = 1u << vars.size();
+
+    std::vector<proof*> proofs{count};
+
+    for (size_t i = 0; i < count; ++i) {
+        for (size_t k = 0; k < vars.size(); ++k) {
+            vars[k]->value = values[k];
+        }
+        std::vector<expression> vsproof_flist = statement->build_vsproof();
+        std::vector<expression> vssupposes = make_supposes(vars);
+        proofs.push_back(new proof(std::move(vssupposes), std::move(vsproof_flist), statement));
+
+        next(values, vars.size());
+    }
+    // TODO concat proofs
 }
