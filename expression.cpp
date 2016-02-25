@@ -246,33 +246,50 @@ variable *find_variable(std::string const &name) {
  *  connective
  */
 
-connective::connective(std::function<bool(bool *)> evaluator, std::function<std::string(expression const *)> str_getter,
+connective::connective(std::function<bool(bool *)> evaluator,
+                       std::function<std::string(expression const *)> str_getter,
+                       std::function<std::vector<expression>(expression const*)> vsproof_builder,
                        size_t priority, size_t sub_count)
-        : evaluator(evaluator), str_getter(str_getter), priority(priority), sub_count(sub_count)
+        : evaluator(evaluator),
+          str_getter(str_getter),
+          vsproof_builder(vsproof_builder),
+          priority(priority), sub_count(sub_count)
 {
 }
 
 connective negation(
         [] (bool* args) -> bool { return !args[0]; },
         [] (expression const* storage) -> std::string { return "!" + storage[0]->to_bounded_string(1); },
+        [] (expression const* storage) -> std::vector<expression> {
+            //TODO
+        },
         1, 1
 );
 
 connective conjunction(
         [] (bool* args) -> bool { return args[0] & args[1]; },
         [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(2) + "&" + storage[1]->to_bounded_string(2); },
+        [] (expression const* storage) -> std::vector<expression> {
+            //TODO
+        },
         2, 2
 );
 
 connective disjunction(
         [] (bool* args) -> bool { return args[0] | args[1]; },
         [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "|" + storage[1]->to_bounded_string(3); },
+        [] (expression const* storage) -> std::vector<expression> {
+            //TODO
+        },
         3, 2
 );
 
 connective implication(
         [] (bool* args) -> bool { return !args[0] | args[1]; },
         [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "->" + storage[1]->to_bounded_string(4); },
+        [] (expression const* storage) -> std::vector<expression> {
+            //TODO
+        },
         4, 2
 );
 

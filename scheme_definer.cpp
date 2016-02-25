@@ -24,18 +24,26 @@ parser<std::string> p{
             return "S_NEG(" + t + ")";
         }
 };
-
+//TODO Fix bugs
 int main(int argc, char *argv[]) {
     assert(argc > 1);
-    if (strcmp(argv[1],"-f") == 0) {
+    if (strcmp(argv[1], "-f") == 0) {
         std::ifstream in{argv[2]};
-        while (true) {
+        while (!in.eof()) {
             std::string res = p.parse(in);
-            if (in.eof()) {
-                return 0;
-            }
             std::cout << res << '\n';
         }
+        return 0;
+    }
+    if (strcmp(argv[1], "-h") == 0) {
+        std::ifstream in{argv[2]};
+        while (!in.eof()) {
+            std::string str;
+            std::getline(in, str);
+            std::string res = p.parse(str);
+            std::cout << "//" << str << "\n\t" << res << ",\n";
+        }
+        return 0;
     }
     for (int i = 1; i < argc; ++i) {
         std::cout << p.parse(argv[i]) << '\n';

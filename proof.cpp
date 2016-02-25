@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include "proof.h"
 #include "axioms.h"
-
+#include "parser.h"
 
 
 std::ostream& operator<<(std::ostream& stream, ann_t const& ann) {
@@ -134,8 +134,8 @@ void proof::deduce() {
             ax_map["X"] = proof_list[i];
 
             n_proof_list.push_back(proof_list[i]);
-            n_proof_list.push_back(axioms[0].get_expression(ax_map));
-            n_proof_list.push_back(mp_scheme_0.get_expression(ax_map));
+            n_proof_list.push_back(AXIOM[0].get_expression(ax_map));
+            n_proof_list.push_back(AXIOM_UTIL[0].get_expression(ax_map));
 
             n_annotations.push_back(annotations[i]);
             n_annotations.push_back(ann_t(ann_t::ANN_AXIOM, 0));
@@ -151,9 +151,9 @@ void proof::deduce() {
         } else if (annotations[i].type == ann_t::ANN_MODUS_PONENS) {
             mp_map["Y"] = proof_list[annotations[i].arg0];
             mp_map["Z"] = proof_list[i];
-            n_proof_list.push_back(axioms[1].get_expression(mp_map));
-            n_proof_list.push_back(mp_scheme_1.get_expression(mp_map));
-            n_proof_list.push_back(mp_mp_scheme_1.get_expression(mp_map));
+            n_proof_list.push_back(AXIOM[1].get_expression(mp_map));
+            n_proof_list.push_back(AXIOM_UTIL[1].get_expression(mp_map));
+            n_proof_list.push_back(AXIOM_UTIL[2].get_expression(mp_map));
 
             n_annotations.push_back(ann_t(ann_t::ANN_AXIOM, 1));
             n_annotations.push_back(ann_t(ann_t::ANN_MODUS_PONENS, links[annotations[i].arg0], n_annotations.size() - 1));

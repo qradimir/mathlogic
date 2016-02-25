@@ -88,9 +88,11 @@ public:
     size_t priority;
     std::function<bool(bool*)> evaluator;
     std::function<std::string(expression const*)> str_getter;
-    //TODO add util for building vsproof
+    std::function<std::vector<expression>(expression const*)> vsproof_builder;
 
-    connective(std::function<bool(bool*)> evaluator, std::function<std::string(expression const*)> str_getter,
+    connective(std::function<bool(bool*)> evaluator,
+               std::function<std::string(expression const*)> str_getter,
+               std::function<std::vector<expression>(expression const*)> vsproof_builder,
                size_t priority, size_t sub_count);
 
 };
