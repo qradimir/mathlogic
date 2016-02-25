@@ -19,3 +19,5 @@ set(UTIL
 add_executable(pr_a pr_a.cpp ${UTIL})
 add_executable(pr_b pr_b.cpp ${UTIL})
 add_executable(pr_c pr_c.cpp ${UTIL})
+
+add_executable(scheme_definer scheme_definer.cpp ${UTIL})

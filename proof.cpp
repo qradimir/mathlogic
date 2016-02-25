@@ -134,7 +134,7 @@ void proof::deduce() {
             ax_map["X"] = proof_list[i];
 
             n_proof_list.push_back(proof_list[i]);
-            n_proof_list.push_back(get_axioms()[0].get_expression(ax_map));
+            n_proof_list.push_back(axioms[0].get_expression(ax_map));
             n_proof_list.push_back(mp_scheme_0.get_expression(ax_map));
 
             n_annotations.push_back(annotations[i]);
@@ -151,7 +151,7 @@ void proof::deduce() {
         } else if (annotations[i].type == ann_t::ANN_MODUS_PONENS) {
             mp_map["Y"] = proof_list[annotations[i].arg0];
             mp_map["Z"] = proof_list[i];
-            n_proof_list.push_back(get_axioms()[1].get_expression(mp_map));
+            n_proof_list.push_back(axioms[1].get_expression(mp_map));
             n_proof_list.push_back(mp_scheme_1.get_expression(mp_map));
             n_proof_list.push_back(mp_mp_scheme_1.get_expression(mp_map));
 

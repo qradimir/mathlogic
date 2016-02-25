@@ -11,25 +11,39 @@
 #include <vector>
 #include <string>
 
-static parser<expression_scheme> axiom_parser = get_scheme_parser();
-static std::string axiom_names[]{
-    "X->Y->X",
-    "(X->Y)->(X->Y->Z)->(X->Z)",
-    "X->Y->X&Y",
-    "X&Y->X",
-    "X&Y->Y",
-    "X->X|Y",
-    "Y->X|Y",
-    "(X->Z)->(Y->Z)->(X|Y->Z)",
-    "(X->Y)->(X->!Y)->!X",
-    "!!X->X"
+static expression_scheme axioms[]{
+//X->Y->X
+    S_IMPL(S_REF(X),S_IMPL(S_REF(Y),S_REF(X))),
+//(X->Y)->(X->Y->Z)->(X->Z)"
+    S_IMPL(S_IMPL(S_REF(X),S_REF(Y)),S_IMPL(S_IMPL(S_REF(X),S_IMPL(S_REF(Y),S_REF(Z))),S_IMPL(S_REF(X),S_REF(Z)))),
+//X->Y->X&Y
+    S_IMPL(S_REF(X),S_IMPL(S_REF(Y),S_CONJ(S_REF(X),S_REF(Y)))),
+//X&Y->X
+    S_IMPL(S_CONJ(S_REF(X),S_REF(Y)),S_REF(X)),
+//X&Y->Y
+    S_IMPL(S_CONJ(S_REF(X),S_REF(Y)),S_REF(Y)),
+//X->X|Y
+    S_IMPL(S_REF(X),S_DISJ(S_REF(X),S_REF(Y))),
+//Y->X|Y
+    S_IMPL(S_REF(Y),S_DISJ(S_REF(X),S_REF(Y))),
+//(X->Z)->(Y->Z)->(X|Y->Z)
+    S_IMPL(S_IMPL(S_REF(X),S_REF(Z)),S_IMPL(S_IMPL(S_REF(Y),S_REF(Z)),S_IMPL(S_DISJ(S_REF(X),S_REF(Y)),S_REF(Z)))),
+//(X->Y)->(X->!Y)->!X
+    S_IMPL(S_IMPL(S_REF(X),S_REF(Y)),S_IMPL(S_IMPL(S_REF(X),S_NEG(S_REF(Y))),S_NEG(S_REF(X)))),
+//!!X->X
+    S_IMPL(S_NEG(S_NEG(S_REF(X))),S_REF(X))
 };
-static std::string a_impl_a_proof_s[]{
-        "A->A->A",
-        "(A->A->A)->(A->(A->A)->A)->(A->A)",
-        "(A->(A->A)->A)->(A->A)",
-        "A->(A->A)->A",
-        "A->A"
+static expression_scheme a_impl_a_proof[]{
+//A->A->A
+    S_IMPL(S_REF(A),S_IMPL(S_REF(A),S_REF(A))),
+//(A->A->A)->(A->(A->A)->A)->(A->A)
+    S_IMPL(S_IMPL(S_REF(A),S_IMPL(S_REF(A),S_REF(A))),S_IMPL(S_IMPL(S_REF(A),S_IMPL(S_IMPL(S_REF(A),S_REF(A)),S_REF(A))),S_IMPL(S_REF(A),S_REF(A)))),
+//(A->(A->A)->A)->(A->A)
+    S_IMPL(S_IMPL(S_REF(A),S_IMPL(S_IMPL(S_REF(A),S_REF(A)),S_REF(A))),S_IMPL(S_REF(A),S_REF(A))),
+//A->(A->A)->A
+    S_IMPL(S_REF(A),S_IMPL(S_IMPL(S_REF(A),S_REF(A)),S_REF(A))),
+//A->A
+    S_IMPL(S_REF(A),S_REF(A))
 };
 
 //  Y->X
@@ -42,9 +56,7 @@ static expression_scheme mp_scheme_1 = S_IMPL(S_IMPL(S_REF(X),S_IMPL(S_REF(Y),S_
 static expression_scheme mp_mp_scheme_1 = S_IMPL(S_REF(X), S_REF(Z));
 
 
-std::vector<expression_scheme> get_axioms();
 std::vector<expression> get_a_impl_a_proof(expression const& sub);
-
 int is_axiom(expression const& expr);
 
 
