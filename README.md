@@ -9,4 +9,4 @@
 
         ./pr_c <EXPRESSION>
 
-Also you can use flag '-d' to see how long it works
+Also you can use flag `-d` to see how long it works
