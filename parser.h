@@ -172,7 +172,7 @@ public:
     }
 };
 
-parser<expression> get_expression_parser();
-parser<expression_scheme> get_scheme_parser();
+parser<expression>& get_expression_parser();
+parser<expression_scheme>& get_scheme_parser();
 
 #endif //MATHLOGIC_PARSER_H

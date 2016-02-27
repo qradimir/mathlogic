@@ -7,6 +7,9 @@
 #include <string.h>
 #include "parser.h"
 
+/*
+ *  parser to make defines like in axioms.cpp
+ */
 parser<std::string> p{
         [](std::string const &s) {
             return "S_REF(" + s + ")";

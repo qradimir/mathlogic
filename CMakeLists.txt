@@ -14,7 +14,10 @@ set(UTIL
         axioms.cpp
         axioms.h
         proof.cpp
-        proof.h)
+        proof.h
+        util.cpp
+        util.h)
+
 
 add_executable(pr_a pr_a.cpp ${UTIL})
 add_executable(pr_b pr_b.cpp ${UTIL})

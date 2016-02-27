@@ -31,7 +31,7 @@ protected:
 public:
     virtual bool operator()() const = 0;
     virtual void get_variables(std::set<variable *> &variables) const = 0;
-    virtual std::vector<expression> build_vsproof() const = 0;
+    virtual std::pair<std::vector<expression>, bool> build_vsproof() const = 0;
     virtual std::string to_string() const = 0;
     virtual size_t get_priority() const = 0;
     virtual size_t hash() const = 0;
@@ -68,6 +68,12 @@ public:
     bool operator==(expression const& other) const;
     bool operator!=(expression const& other) const;
 
+    std::vector<variable *> get_variables() {
+        std::set<variable *> varset;
+        e->get_variables(varset);
+        return std::vector<variable *>{varset.begin(), varset.end()};
+    }
+
     inline expr const* operator->() const {
         return e;
     }
@@ -88,11 +94,11 @@ public:
     size_t priority;
     std::function<bool(bool*)> evaluator;
     std::function<std::string(expression const*)> str_getter;
-    std::function<std::vector<expression>(expression const*)> vsproof_builder;
+    std::function<std::pair<std::vector<expression>, bool>(expression const*)> vsproof_builder;
 
     connective(std::function<bool(bool*)> evaluator,
                std::function<std::string(expression const*)> str_getter,
-               std::function<std::vector<expression>(expression const*)> vsproof_builder,
+               std::function<std::pair<std::vector<expression>, bool>(expression const*)>vsproof_builder,
                size_t priority, size_t sub_count);
 
 };
@@ -124,7 +130,7 @@ public:
 
     virtual bool operator()() const;
     virtual void get_variables(std::set<variable *> &variables) const;
-    virtual std::vector<expression> build_vsproof() const;
+    virtual std::pair<std::vector<expression>, bool> build_vsproof() const;
     virtual std::string to_string() const;
     virtual size_t get_priority() const;
     virtual size_t hash() const;
@@ -165,6 +171,9 @@ public:
 
     variable(std::string const& name, bool value = false);
 
+    std::string to_string() {
+        return name + "=" + (value ? "И" : "Л");
+    }
 };
 
 class variable_ref : public expr {
@@ -183,7 +192,7 @@ public:
 
     virtual bool operator()() const;
     virtual void get_variables(std::set<variable *> &variables) const;
-    virtual std::vector<expression> build_vsproof() const;
+    virtual std::pair<std::vector<expression>, bool> build_vsproof() const;
     virtual std::string to_string() const;
     virtual size_t get_priority() const;
 
@@ -204,7 +213,9 @@ connective* get_negation();
 
 variable* find_variable(std::string const& name);
 
-
-void release_variables();
+template <typename T>
+void push(std::vector<T> &vP, std::vector<T> const &vT) {
+    vP.insert(vP.end(), vT.begin(), vT.end());
+}
 
 #endif //MATHLOGIC_EXPRESSION_H

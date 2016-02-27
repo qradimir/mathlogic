@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "expression.h"
+#include "axioms.h"
+#include "util.h"
 
 #define HASHED(value) hash_value = 31 * hash_value + (size_t)(value)
-
-std::map<std::string, variable*> vars;
 
 /*
  *  expression
@@ -121,9 +121,8 @@ void operation::get_variables(std::set<variable *> &variables) const {
 }
 
 
-std::vector<expression> operation::build_vsproof() const {
-    //TODO build vsproof by children output
-    return std::vector<expression>();
+std::pair<std::vector<expression>, bool> operation::build_vsproof() const {
+    return conn->vsproof_builder(storage);
 }
 
 std::string operation::to_string() const {
@@ -191,11 +190,9 @@ expression make_variable_ref(variable *ref) {
 }
 
 
-std::vector<expression> variable_ref::build_vsproof() const {
-    std::vector<expression> ret{1};
+std::pair<std::vector<expression>, bool> variable_ref::build_vsproof() const {
     expression e = make_variable_ref(ref);
-    ret.push_back(ref->value ? e : E_NEG(e));
-    return ret;
+    return std::make_pair(std::vector<expression>{ref->value ? e : E_NEG(e)}, ref->value);
 }
 
 bool variable_ref::operator()() const{
@@ -227,12 +224,6 @@ bool variable_ref::equals(expr const &other) const {
 
 
 
-void release_variables() {
-    for (auto it = vars.begin(); it != vars.end(); ++it) {
-        delete(it->second);
-    }
-    vars.clear();
-}
 
 variable *find_variable(std::string const &name) {
     auto it = vars.find(name);
@@ -248,7 +239,7 @@ variable *find_variable(std::string const &name) {
 
 connective::connective(std::function<bool(bool *)> evaluator,
                        std::function<std::string(expression const *)> str_getter,
-                       std::function<std::vector<expression>(expression const*)> vsproof_builder,
+                       std::function<std::pair<std::vector<expression>, bool>(expression const*)> vsproof_builder,
                        size_t priority, size_t sub_count)
         : evaluator(evaluator),
           str_getter(str_getter),
@@ -260,8 +251,12 @@ connective::connective(std::function<bool(bool *)> evaluator,
 connective negation(
         [] (bool* args) -> bool { return !args[0]; },
         [] (expression const* storage) -> std::string { return "!" + storage[0]->to_bounded_string(1); },
-        [] (expression const* storage) -> std::vector<expression> {
-            //TODO
+        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
+            auto p = storage[0]->build_vsproof();
+            std::map<std::string, expression> m;
+            m["A"] = storage[0];
+            push(p.first, get_sub_list(get_not_vsproof(p.second), m));
+            return std::make_pair(p.first, !p.second);
         },
         1, 1
 );
@@ -269,8 +264,14 @@ connective negation(
 connective conjunction(
         [] (bool* args) -> bool { return args[0] & args[1]; },
         [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(2) + "&" + storage[1]->to_bounded_string(2); },
-        [] (expression const* storage) -> std::vector<expression> {
-            //TODO
+        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
+            auto p = storage[0]->build_vsproof(), t = storage[1]->build_vsproof();
+            std::map<std::string, expression> m;
+            m["A"] = storage[0];
+            m["B"] = storage[1];
+            push(p.first, t.first);
+            push(p.first, get_sub_list(get_conj_vsproof(p.second, t.second), m));
+            return std::make_pair(p.first, p.second & t.second );
         },
         2, 2
 );
@@ -278,8 +279,14 @@ connective conjunction(
 connective disjunction(
         [] (bool* args) -> bool { return args[0] | args[1]; },
         [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "|" + storage[1]->to_bounded_string(3); },
-        [] (expression const* storage) -> std::vector<expression> {
-            //TODO
+        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
+            auto p = storage[0]->build_vsproof(), t = storage[1]->build_vsproof();
+            std::map<std::string, expression> m;
+            m["A"] = storage[0];
+            m["B"] = storage[1];
+            push(p.first, t.first);
+            push(p.first, get_sub_list(get_disj_vsproof(p.second, t.second), m));
+            return std::make_pair(p.first, p.second | t.second);
         },
         3, 2
 );
@@ -287,8 +294,14 @@ connective disjunction(
 connective implication(
         [] (bool* args) -> bool { return !args[0] | args[1]; },
         [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "->" + storage[1]->to_bounded_string(4); },
-        [] (expression const* storage) -> std::vector<expression> {
-            //TODO
+        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
+            auto p = storage[0]->build_vsproof(), t = storage[1]->build_vsproof();
+            std::map<std::string, expression> m;
+            m["A"] = storage[0];
+            m["B"] = storage[1];
+            push(p.first, t.first);
+            push(p.first, get_sub_list(get_impl_vsproof(p.second, t.second), m));
+            return std::make_pair(p.first, !p.second | t.second);
         },
         4, 2
 );

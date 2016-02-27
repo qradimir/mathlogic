@@ -105,6 +105,4 @@ expression_scheme make_expression_link_ref(std::string const& name);
 
 expression_link *find_expression_link(std::string const& name);
 
-void release_expression_links();
-
 #endif //MATHLOGIC_EXPRESSION_SCHEME_H

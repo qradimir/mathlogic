@@ -3,10 +3,10 @@
 //
 
 #include <map>
-#include "expression.h"
 #include "expression_scheme.h"
+#include "expression.h"
+#include "util.h"
 
-std::map<std::string, expression_link*> expr_links;
 
 /*
  *  expression_scheme
@@ -163,9 +163,3 @@ operation_scheme::operation_scheme(connective const *conn, expression_scheme *st
 {
 }
 
-void release_expression_links() {
-    for (auto it = expr_links.begin(); it != expr_links.end(); ++it) {
-        delete(it->second);
-    }
-    expr_links.clear();
-}

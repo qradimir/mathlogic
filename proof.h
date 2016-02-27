@@ -36,6 +36,7 @@ class proof {
     std::vector<ann_t> annotations;
     bool is_annotated, show_ann;
 
+    friend proof* concat(proof*, proof*);
 public:
 
     proof(const std::vector<expression> &supposes,
@@ -49,7 +50,7 @@ public:
     proof(proof const& other);
 
     explicit proof(std::istream& s);
-    explicit proof(expression proofable);
+    explicit proof(expression proovable);
 
     friend std::ostream & operator<<(std::ostream& ostream, proof const& _proof);
 
@@ -60,6 +61,7 @@ public:
 
     void annotate();
     void deduce();
+    void simplify();
 };
 
 
