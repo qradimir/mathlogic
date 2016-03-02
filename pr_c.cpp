@@ -11,6 +11,7 @@
 int main (int argc, char *argv[] ) {
     if (argc < 2) {
         std::cerr << "Enter a expression to proof\n";;
+        return 0;
     }
     if (argc > 2 && argv[2] == "-d") {
         set_debug(&std::cerr);

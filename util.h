@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <map>
+#include <ctime>
 
 #define DEBUG(d) if (has_debug()) { debug() << d << '\n'; }
 
