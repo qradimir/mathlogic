@@ -5,20 +5,10 @@
 #include "util.h"
 #include <ostream>
 #include <iostream>
+#include <set>
 
-std::ostream *debug_stream;
+bool d = false;
 
-
-void release() {
-    for (auto it = vars.begin(); it != vars.end(); ++it) {
-        delete(it->second);
-    }
-    for (auto it = expr_links.begin(); it != expr_links.end(); ++it) {
-        delete(it->second);
-    }
-    vars.clear();
-    expr_links.clear();
-}
 
 bool *bit_tuple::do_while(std::function<bool(bool const *, size_t)> f) {
     for (size_t i = 0; i < size; ++i) { bits[i] = false; }
@@ -32,14 +22,14 @@ bool *bit_tuple::do_while(std::function<bool(bool const *, size_t)> f) {
     return bits;
 }
 
-void set_debug(std::ostream* stream) {
-    debug_stream = stream;
+void set_debug(bool is_debug) {
+    d = is_debug;
 }
 
 std::ostream &debug() {
-    return *debug_stream;
+    return std::cerr;
 }
 
 bool has_debug() {
-    return debug_stream != nullptr;
+    return d;
 }

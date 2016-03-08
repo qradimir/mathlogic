@@ -5,71 +5,65 @@
 #include <map>
 #include <vector>
 
+#include "util.h"
 #include "expression.h"
 #include "axioms.h"
-#include "util.h"
-
-#define HASHED(value) hash_value = 31 * hash_value + (size_t)(value)
 
 /*
  *  expression
  */
 
-expression::expression(expr *e)
+expression::expression() { }
+
+expression::expression(std::shared_ptr<expr> e)
     : e(e)
 {
-    if (e != nullptr) e->bind();
 }
 
-expression::expression(expression const &other)
-    : expression(other.e)
+expression::expression(const expression &e)
+    : expression(e.e)
 {
 }
 
-expression::expression(expression &&other)
-        : e(nullptr)
+expression::expression(expression &&e)
 {
-    std::swap(e, other.e);
-}
-
-expression::~expression() {
-    if (e != nullptr) e->unbind();
+    std::swap(this->e, e.e);
 }
 
 expression &expression::operator=(expression const &other) {
-    if (e != nullptr) e->unbind();
     e = other.e;
-    if (e != nullptr) e->bind();
     return *this;
 }
 
-bool expression::operator()() const {
-    assert(e != nullptr);
-    return (*e)();
+expression &expression::operator=(expression &&other) {
+    std::swap(e, other.e);
+    return *this;
 }
 
-bool expression::operator==(expression const& other) const {
-    if (e == other.e) {
+bool expression::operator()(variable::holder const& vars) const {
+    return e->evaluate(vars);
+}
+
+vsproof expression::build_vsproof(variable::holder const& vars) const {
+    return e->build_vsproof(vars);
+}
+
+bool expression::operator==(expression const & other) const {
+    if (e == other.e)
         return true;
-    }
-    assert(e != nullptr && other.e != nullptr);
     return *e == *other.e;
 }
 
-
-bool expression::operator!=(expression const &other) const {
-    return !(*this == other);
+std::ostream &operator<<(std::ostream &stream, expression const &expr) {
+    return stream << expr->to_string();
 }
 
-/*
- *  expr
- */
-
-bool expr::operator==(expr const &other) const {
-    if (hash() != other.hash()) {
-        return false;
+expression* copy_storage(size_t count, expression *storage) {
+    expression *t = new expression[count];
+    for (size_t i = 0; i < count; ++i) {
+        t[i] = storage[i];
     }
-    return this->equals(other);
+    return t;
 }
 
 /*
@@ -77,71 +71,100 @@ bool expr::operator==(expr const &other) const {
  */
 
 operation::operation()
+    : operation(CONN_UNKNOWN, new expression[0])
 {
 }
 
-operation::operation(const operation &other)
-    : operation(other.conn, other.storage)
+#define HASHED(value) hash_value = 31 * hash_value + (size_t)(value);
+
+operation::operation(ssize_t conn, expression *storage)
+    : expr(TYPE_OP), connective_type(conn), storage(storage)
 {
-}
-
-operation::~operation() {
-    delete[](storage);
-}
-
-
-expression* copy_storage(size_t count, expression *storage) {
-    expression *t = new expression[count];
-    for (size_t i = 0; i < count; ++i) {
-        t[i].e = storage[i].e;
-        t[i].e->bind();
-    }
-    return t;
-}
-
-operation::operation(connective const *conn, expression *storage)
-    : conn(conn), storage(copy_storage(conn->sub_count, storage))
-{
-    count_hash();
-}
-
-
-bool operation::operator()() const {
-    bool values[get_sub_count()];
-    for (size_t i = 0; i < get_sub_count(); ++i) {
-        values[i] = get_sub(i)->operator()();
-    }
-    return conn->evaluator(values);
-}
-
-void operation::get_variables(std::set<variable *> &variables) const {
-    for (size_t i = 0; i < get_sub_count(); ++i) {
-        get_sub(i)->get_variables(variables);
+    hash_value = 0;
+    HASHED(connective_type);
+    for (size_t i = 0; i < op_sub_count[connective_type]; ++i) {
+        HASHED(storage[i]->hash());
     }
 }
 
+bool operation::evaluate(variable::holder const &vars) const {
+    static std::function<bool(bool*)> evaluator[]{
+            [] (bool* args) -> bool { return !args[0] | args[1]; },
+            [] (bool* args) -> bool { return  args[0] & args[1]; },
+            [] (bool* args) -> bool { return  args[0] | args[1]; },
+            [] (bool* args) -> bool { return !args[0]; },
 
-std::pair<std::vector<expression>, bool> operation::build_vsproof() const {
-    return conn->vsproof_builder(storage);
+    };
+    size_t s = op_sub_count[connective_type];
+    bool values[s];
+    for (size_t i = 0; i < s; ++i) {
+        values[i] = storage[i]->evaluate(vars);
+    }
+    return evaluator[connective_type](values);
+}
+
+vsproof operation::build_vsproof(variable::holder const &vars) const {
+    static std::function<vsproof(expression*, variable::holder const&)> proofer[]{
+            [] (expression const *s, variable::holder const &v) -> vsproof{
+                vsproof p = s[0]->build_vsproof(v), t = s[1]->build_vsproof(v);
+                expression_link::holder m;
+                m["A"] = s[0];
+                m["B"] = s[1];
+                push(p.first, t.first);
+                push(p.first, get_sub_list(get_impl_vsproof(p.second, t.second), m));
+                return std::make_pair(p.first, !p.second | t.second);
+            },
+            [] (expression const *s, variable::holder const &v) -> vsproof{
+                vsproof p = s[0]->build_vsproof(v), t = s[1]->build_vsproof(v);
+                expression_link::holder m;
+                m["A"] = s[0];
+                m["B"] = s[1];
+                push(p.first, t.first);
+                push(p.first, get_sub_list(get_conj_vsproof(p.second, t.second), m));
+                return std::make_pair(p.first, p.second & t.second );
+            },
+            [] (expression const *s, variable::holder const &v) -> vsproof {
+                vsproof p = s[0]->build_vsproof(v), t = s[1]->build_vsproof(v);
+                expression_link::holder m;
+                m["A"] = s[0];
+                m["B"] = s[1];
+                push(p.first, t.first);
+                push(p.first, get_sub_list(get_disj_vsproof(p.second, t.second), m));
+                return std::make_pair(p.first, p.second | t.second);
+            },
+            [] (expression const *s, variable::holder const &v) -> vsproof {
+                auto p = s[0]->build_vsproof(v);
+                expression_link::holder m;
+                m["A"] = s[0];
+                push(p.first, get_sub_list(get_not_vsproof(p.second), m));
+                return std::make_pair(p.first, !p.second);
+            }
+    };
+    return proofer[connective_type](storage, vars);
 }
 
 std::string operation::to_string() const {
-    return conn->str_getter(storage);
+    static std::function<std::string(expression*)> op_name[]{
+            [](expression *e) -> std::string { return "(" + e[0]->to_string() + ")->(" + e[1]->to_string() + ")"; },
+            [](expression *e) -> std::string { return "(" + e[0]->to_string() + ")&("  + e[1]->to_string() + ")"; },
+            [](expression *e) -> std::string { return "(" + e[0]->to_string() + ")|("  + e[1]->to_string() + ")"; },
+            [](expression *e) -> std::string { return "!(" + e[0]->to_string() + ")"; }
+    };
+    return op_name[connective_type](storage);
 }
 
-size_t operation::get_priority() const {
-    return conn->priority;
+
+size_t operation::hash() const noexcept {
+    return hash_value;
 }
 
-bool operation::equals(expr const &other) const {
-    if (typeid(operation) != typeid(other)) {
+
+bool operation::equals(expr const &e) const noexcept {
+    operation const &op  = cast_op(e);
+    if (connective_type != op.connective_type) {
         return false;
     }
-    operation const& op = dynamic_cast<operation const&>(other);
-    if (conn != op.conn) {
-        return false;
-    }
-    for (int i = 0; i < conn->sub_count; ++i) {
+    for (size_t i = 0; i < op_sub_count[connective_type]; ++i) {
         if (storage[i] != op.storage[i]) {
             return false;
         }
@@ -149,183 +172,88 @@ bool operation::equals(expr const &other) const {
     return true;
 }
 
-size_t operation::hash() const {
-    return hash_value;
-}
-
-void operation::count_hash() {
-    hash_value = 0;
-    HASHED(conn);
-    for (int i = 0; i < conn->sub_count; ++i) {
-        HASHED(storage[i]->hash());
-    }
-}
-
-variable::variable(std::string const& name, bool value) :
-        name(name),
-        value(value)
-{
-    vars.insert(std::make_pair(name, this));
-}
-
-/*
- *  variable_ref
- */
-
-variable_ref::variable_ref(variable *ref)
-    : ref(ref)
-{
-}
-
-expression make_variable_ref(std::string const &s) {
-    auto ref = find_variable(s);
-    if (ref == nullptr) {
-        ref = new variable(s);
-    }
-    return expression(new variable_ref(ref));
-}
-
-expression make_variable_ref(variable *ref) {
-    return expression(new variable_ref(ref));
-}
-
-
-std::pair<std::vector<expression>, bool> variable_ref::build_vsproof() const {
-    expression e = make_variable_ref(ref);
-    return std::make_pair(std::vector<expression>{ref->value ? e : E_NEG(e)}, ref->value);
-}
-
-bool variable_ref::operator()() const{
-    return ref->value;
-}
-
-void variable_ref::get_variables(std::set<variable *> &variables) const {
-    variables.insert(ref);
-}
-
-std::string variable_ref::to_string() const{
-    return ref->name;
-}
-
-size_t variable_ref::get_priority() const{
-    return 0;
-}
-
-size_t variable_ref::hash() const {
-    return (size_t) ref;
-}
-
-bool variable_ref::equals(expr const &other) const {
-    if (typeid(variable_ref) != typeid(other)) {
+bool operation::match(expression_link::holder &links, expression const &matching) const {
+    if (matching->type() != TYPE_OP) {
         return false;
     }
-    return ref == dynamic_cast<variable_ref const&>(other).ref;
+    std::shared_ptr<operation> op = get_op(matching);
+    if (connective_type != op->connective_type) {
+        return false;
+    }
+    for (size_t i = 0; i < op_sub_count[connective_type]; ++i) {
+        if (!storage[i]->match(links, op->storage[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+expression operation::substitute(expression_link::holder const &holder) const {
+    expression ret[op_sub_count[connective_type]];
+    for (size_t i = 0; i < op_sub_count[connective_type]; ++i) {
+        ret[i] = storage[i]->substitute(holder);
+    }
+    return make_operation(connective_type, ret);
+}
+
+operation::~operation() {
+    delete[](storage);
 }
 
 
-
-
-variable *find_variable(std::string const &name) {
-    auto it = vars.find(name);
-    if (it == vars.end()) {
-        return nullptr;
-    }
-    return it->second;
+expression make_operation(ssize_t conn, expression *exprs) {
+    return expression(std::shared_ptr<operation>(new operation(conn, copy_storage(op_sub_count[conn], exprs))));
 }
 
 /*
- *  connective
+ *  reference
  */
 
-connective::connective(std::function<bool(bool *)> evaluator,
-                       std::function<std::string(expression const *)> str_getter,
-                       std::function<std::pair<std::vector<expression>, bool>(expression const*)> vsproof_builder,
-                       size_t priority, size_t sub_count)
-        : evaluator(evaluator),
-          str_getter(str_getter),
-          vsproof_builder(vsproof_builder),
-          priority(priority), sub_count(sub_count)
+reference::reference(std::string const &name)
+        : expr(TYPE_REF), name(name)
 {
 }
 
-connective negation(
-        [] (bool* args) -> bool { return !args[0]; },
-        [] (expression const* storage) -> std::string { return "!" + storage[0]->to_bounded_string(1); },
-        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
-            auto p = storage[0]->build_vsproof();
-            std::map<std::string, expression> m;
-            m["A"] = storage[0];
-            push(p.first, get_sub_list(get_not_vsproof(p.second), m));
-            return std::make_pair(p.first, !p.second);
-        },
-        1, 1
-);
-
-connective conjunction(
-        [] (bool* args) -> bool { return args[0] & args[1]; },
-        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(2) + "&" + storage[1]->to_bounded_string(2); },
-        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
-            auto p = storage[0]->build_vsproof(), t = storage[1]->build_vsproof();
-            std::map<std::string, expression> m;
-            m["A"] = storage[0];
-            m["B"] = storage[1];
-            push(p.first, t.first);
-            push(p.first, get_sub_list(get_conj_vsproof(p.second, t.second), m));
-            return std::make_pair(p.first, p.second & t.second );
-        },
-        2, 2
-);
-
-connective disjunction(
-        [] (bool* args) -> bool { return args[0] | args[1]; },
-        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "|" + storage[1]->to_bounded_string(3); },
-        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
-            auto p = storage[0]->build_vsproof(), t = storage[1]->build_vsproof();
-            std::map<std::string, expression> m;
-            m["A"] = storage[0];
-            m["B"] = storage[1];
-            push(p.first, t.first);
-            push(p.first, get_sub_list(get_disj_vsproof(p.second, t.second), m));
-            return std::make_pair(p.first, p.second | t.second);
-        },
-        3, 2
-);
-
-connective implication(
-        [] (bool* args) -> bool { return !args[0] | args[1]; },
-        [] (expression const* storage) -> std::string { return storage[0]->to_bounded_string(3) + "->" + storage[1]->to_bounded_string(4); },
-        [] (expression const* storage) -> std::pair<std::vector<expression>, bool> {
-            auto p = storage[0]->build_vsproof(), t = storage[1]->build_vsproof();
-            std::map<std::string, expression> m;
-            m["A"] = storage[0];
-            m["B"] = storage[1];
-            push(p.first, t.first);
-            push(p.first, get_sub_list(get_impl_vsproof(p.second, t.second), m));
-            return std::make_pair(p.first, !p.second | t.second);
-        },
-        4, 2
-);
-
-connective *get_implication() {
-    return &implication;
+bool reference::evaluate(variable::holder const &vars) const {
+    auto var = vars.find(name);
+    if (var == vars.end()) {
+        throw variable::no_value{vars, name};
+    }
+    return var->second;
 }
 
-connective *get_disjunction() {
-    return &disjunction;
+vsproof reference::build_vsproof(variable::holder const &vars) const {
+    bool val = evaluate(vars);
+    expression e = make_reference(name);
+    return std::make_pair(std::vector<expression>{expression(val ? e : S_NEG(e))}, val);
 }
 
-connective *get_conjunction() {
-    return &conjunction;
+std::string reference::to_string() const {
+    return name;
 }
 
-connective *get_negation() {
-    return &negation;
+size_t reference::hash() const noexcept {
+    static std::hash<std::string> str_hash{};
+    return str_hash(name);
 }
 
-std::ostream &operator<<(std::ostream &stream, expression const &expr) {
-    return stream << expr->to_string();
+bool reference::equals(expr const &e) const noexcept {
+    return cast_ref(e).name == name;
 }
 
-expression make_operation(connective const* conn, expression *exprs) {
-    return expression(new operation(conn, exprs));
+bool reference::match(expression_link::holder & links, expression const &matching) const {
+    auto ptr = links.find(name);
+    if (ptr == links.end()) {
+        links.insert(std::make_pair(name, matching));
+        return true;
+    }
+    return ptr->second == matching;
+}
+
+expression reference::substitute(expression_link::holder const &holder) const {
+    auto ptr = holder.find(name);
+    if (ptr == holder.end()) {
+        throw expression_link::no_value{holder, name};
+    }
+    return ptr->second;
 }

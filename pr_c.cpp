@@ -5,33 +5,44 @@
 #include <iostream>
 #include "expression.h"
 #include "parser.h"
-#include "util.h"
+#include "proof.h"
 #include <fstream>
+
+
+std::string info(variable::holder::iterator var) {
+    return var->first + "=" +  (var->second ? "И" : "Л");
+}
 
 int main (int argc, char *argv[] ) {
     if (argc < 2) {
         std::cerr << "Enter a expression to proof\n";;
-        return 0;
+        return 1;
     }
-    if (argc > 2 && argv[2] == "-d") {
-        set_debug(&std::cerr);
+    set_debug(argc > 2 && strcmp(argv[2], "-d"));
+    DEBUG("debug enabled");
+    expression e;
+    try {
+        e = parser{}.parse(argv[1]);
+    } catch (std::string &e) {
+        std::cerr << "erorr :" << e << '\n';
+        return 1;
     }
-    expression e = get_expression_parser().parse(argv[1]);
-    std::vector<variable *> vars = e.get_variables();
+    variable::holder vars = e.values<bool>();
     bit_tuple values{vars.size()};
     bool all = true;
     values.do_while(
             [&all, &vars, &e](bool const*v, size_t c) -> bool {
-                for (size_t k = 0; k < c; ++k) {
-                    vars[k]->value = v[k];
+                int k = 0;
+                for (variable::holder::iterator it = vars.begin(); it != vars.end(); ++it) {
+                    it->second = v[k++];
                 }
-                return all &= e.get()();
+                return all &= e(vars);
             }
     );
     if (!all) {
-        std::cout << "Высказывание ложно при " << vars[0]->to_string();
-        for (size_t i = 1; i < vars.size(); ++i) {
-            std::cout << ", " << vars[i]->to_string();
+        std::cout << "Высказывание ложно при " << info(vars.begin());
+        for (auto it = ++vars.begin(); it != vars.end(); ++it) {
+            std::cout << ", " << info(it);
         }
         std::cout << '\n';
     } else {
@@ -42,6 +53,5 @@ int main (int argc, char *argv[] ) {
         LOG_TIME_DELTA(" - simplifying proof")
         std::cout << pr;
     }
-    release();
     return 0;
 }

@@ -7,8 +7,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(UTIL
         expression.cpp
         expression.h
-        expression_scheme.cpp
-        expression_scheme.h
         parser.cpp
         parser.h
         axioms.cpp

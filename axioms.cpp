@@ -5,7 +5,7 @@
 #include <iostream>
 #include "axioms.h"
 
-typedef std::vector<expression_scheme> sh_list;
+typedef std::vector<expression> sh_list;
 
 sh_list AXIOM{
 //X->Y->X
@@ -499,17 +499,17 @@ sh_list SUP_REDUCE {
 };
 
 int is_axiom(expression const& expr) {
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < AXIOM.size(); ++i) {
         if (AXIOM[i].match(expr))
             return i;
     }
     return -1;
 }
 
-std::vector<expression> get_sub_list(std::vector<expression_scheme> shemes, std::map<std::string, expression> const &m) {
+std::vector<expression> get_sub_list(std::vector<expression> const &shemes, expression_link::holder const &m) {
     std::vector<expression> ret{};
     for (size_t i = 0; i < shemes.size(); ++i) {
-        ret.push_back(shemes[i].get_expression(m));
+        ret.push_back(shemes[i]->substitute(m));
     }
     return ret;
 }

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <fstream>
 #include "parser.h"
-#include "util.h"
+#include "proof.h"
 
 int main ( int argc, char *argv[] ) {
     if (argc < 2) {
@@ -13,9 +13,7 @@ int main ( int argc, char *argv[] ) {
         return -1;
     }
     std::ifstream input(argv[1]);
-    if (argc > 2 && argv[2] == "-d") {
-        set_debug(&std::cerr);
-    }
+    set_debug(argc > 2 && strcmp(argv[2], "-d"));
     INIT_TIME
     proof pr{input};
     LOG_TIME_DELTA(" - time to parse")
@@ -23,6 +21,5 @@ int main ( int argc, char *argv[] ) {
     LOG_TIME_DELTA(" - time to annotate")
     std::cout << pr.annotation();
 
-    release();
     return 0;
 }

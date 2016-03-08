@@ -9,7 +9,6 @@
 #include "proof.h"
 #include "axioms.h"
 #include "parser.h"
-#include "util.h"
 
 
 std::ostream& operator<<(std::ostream& stream, ann_t const& ann) {
@@ -93,8 +92,8 @@ void proof::annotate() {
             }
         }
         if (!found) {
-            for (auto it = expr_set.begin(); it != expr_set.end(); ++it) {
-                auto _expr = expr_set.find(make_operation(get_implication(), it->first, proof_list[i]));
+            for (std::unordered_map<expression, int>::iterator  it = expr_set.begin(); it != expr_set.end(); ++it) {
+                auto _expr = expr_set.find(S_IMPL(it->first, proof_list[i]));
                 if (_expr != expr_set.end()) {
                     annotations.push_back(ann_t(ann_t::ANN_MODUS_PONENS, it->second, _expr->second));
                     found = true;
@@ -120,11 +119,11 @@ void proof::deduce() {
 
     expression a = supposes.back();
 
-    std::map<std::string, expression> ax_map{};
+    expression_link::holder ax_map{};
     ax_map["Y"] = a;
-    std::map<std::string, expression> mp_map{};
+    expression_link::holder mp_map{};
     mp_map["X"] = a;
-    std::map<std::string, expression> aa_map{};
+    expression_link::holder aa_map{};
     aa_map["A"] = a;
     std::vector<expression> a_impl_a_proof = get_sub_list(aa_deduction(), aa_map);
 
@@ -162,56 +161,55 @@ void proof::deduce() {
     }
     proof_list = std::move(n_proof_list);
     annotations = std::move(n_annotations);
-    statement = E_IMPL(a, statement);
+    statement = S_IMPL(a, statement);
     is_annotated = false;
 }
 
 proof::proof(std::istream& s)
     : supposes{},
-      statement{nullptr},
+      statement{},
       proof_list{},
-      is_annotated(false),
-      show_ann(false)
+      is_annotated{false},
+      show_ann{false}
 {
-    parser<expression> p = get_expression_parser();
+    parser p = parser{};
     p.input = &s;
     p.nextLex();
-    if (p.lexem == parser<expression>::LEXEM_END) { throw std::exception{}; }
-    if (p.lexem != parser<expression>::LEXEM_SEPARATOR) {
+    if (p.lexem == parser::LEXEM_END) { throw std::exception{}; }
+    if (p.lexem != parser::LEXEM_SEPARATOR) {
         supposes.push_back(p.parse_implication());
-        while (p.lexem != parser<expression>::LEXEM_SEPARATOR) {
+        while (p.lexem != parser::LEXEM_SEPARATOR) {
             p.nextLex();
-            if (p.lexem == parser<expression>::LEXEM_END) { throw std::exception{}; }
+            if (p.lexem == parser::LEXEM_END) { throw std::exception{}; }
             supposes.push_back(p.parse_implication());
         }
     }
     p.nextLex();
     statement = p.parse_implication();
-    while (p.lexem == parser<expression>::LEXEM_NEW_LINE) {
+    while (p.lexem == parser::LEXEM_NEW_LINE) {
         p.nextLex();
-        if (p.lexem == parser<expression>::LEXEM_END) { break; }
+        if (p.lexem == parser::LEXEM_END) { break; }
         proof_list.push_back(p.parse_implication());
     }
 }
 
 
-std::vector<expression> make_supposes(std::vector<variable *> const &vars) {
+std::vector<expression> make_supposes(variable::holder const &vars) {
     std::vector<expression> ret{};
     for (auto it = vars.rbegin(); it != vars.rend(); ++it) {
-        expression ref = make_variable_ref(*it);
-        ret.push_back(((*it)->value) ? ref : E_NEG(ref));
+        expression ref = make_reference(it->first);
+        ret.push_back((it->second) ? ref : S_NEG(ref));
     }
     return ret;
 }
 
 proof* concat(proof *p1, proof *p2) {
-    assert(p1->statement == p2->statement);
-    expression removed = make_variable_ref(p2->supposes.back().get_variables().front());
+    expression removed = p2->supposes.back();
     expression statement = p2->statement;
     p1->deduce();
     p2->deduce();
     push(p1->proof_list, p2->proof_list);
-    std::map<std::string, expression> m{std::make_pair("A", removed), std::make_pair("B", statement)};
+    expression_link::holder m{std::make_pair("A", removed), std::make_pair("B", statement)};
     push(p1->proof_list,get_sub_list(suppose_reduce_proof(), m));
     delete p2;
     p1->is_annotated = false;
@@ -226,7 +224,7 @@ proof::proof(expression proovable)
       is_annotated(false),
       show_ann(false)
 {
-    std::vector<variable *> vars = proovable.get_variables();
+    variable::holder vars = proovable.values<bool>();
     size_t count = vars.size();
     bit_tuple values{count};
 
@@ -234,15 +232,19 @@ proof::proof(expression proovable)
 
     values.do_while(
             [&proofs, &vars, this](bool const *vals, size_t c) -> bool {
-                for (size_t k = 0; k < c; ++k) {
-                    vars[k]->value = vals[k];
+                size_t k = 0;
+                for (variable::holder::iterator it = vars.begin(); it != vars.end(); ++it) {
+                    it->second = vals[k++];
                 }
-                std::vector<expression> vsproof_list = statement->build_vsproof().first;
+                std::vector<expression> vsproof_list = statement.build_vsproof(vars).first;
                 std::vector<expression> vssupposes = make_supposes(vars);
                 proofs.push_back(new proof(std::vector<expression>{vssupposes}, std::move(vsproof_list), statement));
                 return true;
             }
     );
+    for (int i = 0; i < proofs.size(); ++i) {
+        DEBUG(*proofs[i]);
+    }
     while (proofs.size() > 1) {
         std::vector<proof*> n_proofs{};
         for (size_t i = 0; i < proofs.size(); i += 2) {

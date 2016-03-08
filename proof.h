@@ -12,7 +12,7 @@
 namespace std {
     template<>
     struct hash<expression> {
-        size_t operator()(expression e) const noexcept { return e->hash(); }
+        size_t operator()(expression const &e) const noexcept { return e->hash(); }
     };
 }
 

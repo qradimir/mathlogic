@@ -5,217 +5,213 @@
 #ifndef MATHLOGIC_EXPRESSION_H
 #define MATHLOGIC_EXPRESSION_H
 
-#include <functional>
-#include <assert.h>
-#include <set>
 #include <vector>
+#include <memory>
+#include "util.h"
 
-#define E_IMPL(arg0, arg1)  make_operation(get_implication(), arg0, arg1)
-#define E_CONJ(arg0, arg1)  make_operation(get_conjunction(), arg0, arg1)
-#define E_DISJ(arg0, arg1)  make_operation(get_disjunction(), arg0, arg1)
-#define E_NEG(arg0)         make_operation(get_negation(), arg0)
-#define E_REF(name)         make_variable_ref(#name)
+#define S_IMPL(arg0, arg1)  make_operation(CONN_IMPL, arg0, arg1)
+#define S_CONJ(arg0, arg1)  make_operation(CONN_CONJ, arg0, arg1)
+#define S_DISJ(arg0, arg1)  make_operation(CONN_DISJ, arg0, arg1)
+#define S_NEG(arg0)         make_operation(CONN_NEG, arg0)
+#define S_REF(name)         make_reference(#name)
 
-/*
- *  Expression
- */
-
-class variable;
 class expression;
 
+static const ssize_t TYPE_OP = 0;
+static const ssize_t TYPE_REF = 1;
+
+static const ssize_t CONN_UNKNOWN = -1;
+
+static const ssize_t CONN_IMPL = 0;
+static const ssize_t CONN_CONJ = 1;
+static const ssize_t CONN_DISJ = 2;
+static const ssize_t CONN_NEG  = 3;
+
+typedef std::pair<std::vector<expression>, bool> vsproof;
+typedef evalue<bool> variable;
+typedef evalue<expression> expression_link;
+
 class expr {
-    int binds = 0;
 protected:
-    virtual bool equals(expr const& other) const = 0;
+    ssize_t expr_type;
 
 public:
-    virtual bool operator()() const = 0;
-    virtual void get_variables(std::set<variable *> &variables) const = 0;
-    virtual std::pair<std::vector<expression>, bool> build_vsproof() const = 0;
+    expr(ssize_t type) : expr_type(type) { }
+
+    bool operator==(expr const &other) const noexcept {
+        if (expr_type != other.expr_type) {
+            return false;
+        }
+        return hash() == other.hash() ? this->equals(other) : false;
+    }
+
+    inline ssize_t type() const noexcept {
+        return expr_type;
+    }
+
+    virtual size_t hash() const noexcept = 0;
+    virtual bool equals(expr const &e) const noexcept = 0;
+    virtual bool evaluate(variable::holder const&) const = 0;
+    virtual vsproof build_vsproof(variable::holder const&) const = 0;
+    virtual bool match(expression_link::holder &, expression const &matching) const = 0;
+    virtual expression substitute(expression_link::holder const &) const = 0;
     virtual std::string to_string() const = 0;
-    virtual size_t get_priority() const = 0;
-    virtual size_t hash() const = 0;
 
-    inline void bind() { binds++; }
-    inline void unbind() { binds--; if (binds == 0) delete(this); }
-
-    bool operator==(expr const& other) const;
-
-    std::string to_bounded_string(int priority) const {
-        return (priority < this->get_priority()) ? '(' + this->to_string() + ')' : this->to_string();
+    virtual ~expr(){
     }
 
-    virtual ~expr() {
-    }
 };
 
-class expression {
-    expr * e;
+template <typename T>
+void init_references(const expression &e, typename evalue<T>::holder &references);
 
+class expression {
+    std::shared_ptr<expr> e;
 
 public:
 
-    expression() : e(nullptr) {}
-    expression(expr * e);
+    expression();
+    expression(std::shared_ptr<expr> e);
     expression(expression const& other);
     expression(expression&& other);
 
-     ~expression();
-
     expression& operator=(expression const& other);
+    expression& operator=(expression && other);
 
-    bool operator()() const;
-    bool operator==(expression const& other) const;
-    bool operator!=(expression const& other) const;
+    vsproof build_vsproof(variable::holder const& vars) const;
+    bool operator()(variable::holder const& vars) const;
+    bool operator==(expression const & other) const;
 
-    std::vector<variable *> get_variables() {
-        std::set<variable *> varset;
-        e->get_variables(varset);
-        return std::vector<variable *>{varset.begin(), varset.end()};
+    inline bool operator!=(expression const & other) const {
+        return !(*this == other);
     }
 
-    inline expr const* operator->() const {
+    inline std::shared_ptr<expr> const operator*() const noexcept {
         return e;
     }
 
-    inline expr const& get() const {
-        return *e;
+    inline std::shared_ptr<expr> const operator->() const noexcept {
+        return e;
     }
 
-    friend expression* copy_storage(size_t count, expression* storage);
+    inline bool match(expression const &matching) const{
+        expression_link::holder h{};
+        return e->match(h, matching);
+    }
+
+    template <typename T>
+    typename evalue<T>::holder values() const {
+        typename evalue<T>::holder h{};
+        init_references<T>(*this, h);
+        return h;
+    }
+
+    friend expression* copy_storage(size_t count, expression *storage);
 };
 
 std::ostream& operator<<(std::ostream& stream, expression const& expr);
 
-class connective {
-public:
-
-    size_t sub_count;
-    size_t priority;
-    std::function<bool(bool*)> evaluator;
-    std::function<std::string(expression const*)> str_getter;
-    std::function<std::pair<std::vector<expression>, bool>(expression const*)> vsproof_builder;
-
-    connective(std::function<bool(bool*)> evaluator,
-               std::function<std::string(expression const*)> str_getter,
-               std::function<std::pair<std::vector<expression>, bool>(expression const*)>vsproof_builder,
-               size_t priority, size_t sub_count);
-
-};
-
 class operation : public expr {
-
-    connective const* conn;
-
-    expression* storage;
-
     size_t hash_value;
 
 protected:
-    virtual bool equals(expr const &other) const;
-
-    void count_hash();
-
     operation();
-    operation(connective const *conn, expression* storage);
+    operation(ssize_t conn, expression* storage);
 
 public:
-    operation(operation const& other);
+    const ssize_t connective_type;
+    expression *const storage;
+
+    inline expression const &get_sub(size_t i) const noexcept {
+        return storage[i];
+    }
+
+    virtual size_t hash() const noexcept;
+    virtual bool equals(expr const &e) const noexcept;
+    virtual bool evaluate(variable::holder const&) const;
+    virtual vsproof build_vsproof(variable::holder const&) const;
+    virtual bool match(expression_link::holder &, expression const &) const;
+    virtual expression substitute(expression_link::holder const &) const;
+    virtual std::string to_string() const;
 
     ~operation();
 
-    inline connective const *get_conn() const;
-    inline size_t get_sub_count() const;
-    inline expression const &get_sub(size_t i) const;
+    friend expression make_operation(ssize_t conn, expression *exprs);
+    friend expression make_operation(ssize_t conn, expression const& arg1);
+    friend expression make_operation(ssize_t conn, expression const& arg1, expression const& arg2);
 
-    virtual bool operator()() const;
-    virtual void get_variables(std::set<variable *> &variables) const;
-    virtual std::pair<std::vector<expression>, bool> build_vsproof() const;
-    virtual std::string to_string() const;
-    virtual size_t get_priority() const;
-    virtual size_t hash() const;
-
-    friend expression make_operation(connective const* conn, expression *exprs);
-    friend expression make_operation(connective const* conn, expression const& arg1);
-    friend expression make_operation(connective const* conn, expression const& arg1, expression const& arg2);
 };
 
-expression make_operation(connective const* conn, expression *exprs);
+expression make_operation(ssize_t conn, expression *exprs);
 
-inline expression make_operation(connective const* conn, expression const& arg1) {
+inline expression make_operation(ssize_t conn, expression const& arg1) {
     expression exprs[]{arg1};
     return make_operation(conn, exprs);
 }
 
-inline expression make_operation(connective const* conn, expression const& arg1, expression const& arg2) {
+inline expression make_operation(ssize_t conn, expression const& arg1, expression const& arg2) {
     expression exprs[]{arg1, arg2};
     return make_operation(conn, exprs);
 }
 
-inline connective const *operation::get_conn() const {
-    return conn;
-}
-
-inline size_t operation::get_sub_count() const {
-    return conn->sub_count;
-}
-
-inline expression const& operation::get_sub(size_t i) const {
-    return storage[i];
-}
-
-class variable {
-public:
-    bool value;
-    std::string name;
-
-    variable(std::string const& name, bool value = false);
-
-    std::string to_string() {
-        return name + "=" + (value ? "И" : "Л");
-    }
-};
-
-class variable_ref : public expr {
-
-    variable* ref;
-
-    variable_ref(variable* ref);
-
-protected:
-    virtual bool equals(expr const &other) const;
+class reference : public expr {
+    explicit reference(const std::string &name);
 
 public:
-    inline variable& operator->() {
-        return *ref;
-    }
+    const std::string name;
 
-    virtual bool operator()() const;
-    virtual void get_variables(std::set<variable *> &variables) const;
-    virtual std::pair<std::vector<expression>, bool> build_vsproof() const;
+    virtual size_t hash() const noexcept;
+    virtual bool equals(expr const &e) const noexcept;
+    virtual bool evaluate(variable::holder const&) const;
+    virtual vsproof build_vsproof(variable::holder const&) const;
+    virtual bool match(expression_link::holder &, expression const &) const;
+    virtual expression substitute(expression_link::holder const &) const;
     virtual std::string to_string() const;
-    virtual size_t get_priority() const;
 
-
-    virtual size_t hash() const;
-
-    friend expression make_variable_ref(variable *var);
-    friend expression make_variable_ref(std::string const &s);
+    friend expression make_reference(const std::string &name);
 };
 
-expression make_variable_ref(variable *ref);
-expression make_variable_ref(std::string const &s);
+inline expression make_reference(const std::string &name) {
+    return expression(std::shared_ptr<reference>(new reference(name)));
+}
 
-connective* get_implication();
-connective* get_disjunction();
-connective* get_conjunction();
-connective* get_negation();
-
-variable* find_variable(std::string const& name);
+expression *copy_storage(size_t count, expression *storage);
 
 template <typename T>
 void push(std::vector<T> &vP, std::vector<T> const &vT) {
     vP.insert(vP.end(), vT.begin(), vT.end());
+}
+
+inline std::shared_ptr<operation> get_op(expression const &e) {
+    return std::dynamic_pointer_cast<operation>(*e);
+}
+
+inline std::shared_ptr<reference> get_ref(expression const &e) {
+    return std::dynamic_pointer_cast<reference>(*e);
+}
+
+inline operation const &cast_op(expr const &e) {
+    return dynamic_cast<operation const &>(e);
+}
+
+inline reference const &cast_ref(expr const &e) {
+    return dynamic_cast<reference const &>(e);
+}
+
+static constexpr size_t op_sub_count[]{2, 2, 2, 1};
+
+template <typename T>
+static void init_references(expression const &e, typename evalue<T>::holder &references) {
+    if (e->type() == TYPE_OP) {
+        std::shared_ptr<operation> op = get_op(e);
+        for (size_t i = 0; i < op_sub_count[op->connective_type]; ++i) {
+            init_references<T>(op->get_sub(i), references);
+        }
+        return;
+    }
+    if (e->type() == TYPE_REF) {
+        references.insert(std::make_pair(get_ref(e)->name, T{}));
+    }
 }
 
 #endif //MATHLOGIC_EXPRESSION_H
