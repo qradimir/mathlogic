@@ -1,0 +1,22 @@
+name:              predicate
+version:           1.0
+Build-Type:        Simple
+cabal-version:     >= 1.2
+
+executable pr_d
+  main-is:         Main.hs
+  hs-source-dirs:  Predicate/
+  build-depends:   mtl, base, parsec, containers,  transformers, text
+  extensions:      PatternGuards
+
+executable pr_e
+  main-is:         Sum.hs
+  hs-source-dirs:  Predicate/
+  build-depends:   text
+  extensions:      PatternGuards
+
+executable annotation
+  main-is:         Annotation.hs
+  hs-source-dirs:  Predicate/
+  build-depends:   mtl, base, parsec, containers,  transformers, text
+  extensions:      PatternGuards
