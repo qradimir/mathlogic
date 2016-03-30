@@ -6,6 +6,7 @@
 #include <fstream>
 #include "parser.h"
 #include "proof.h"
+#include "util.h"
 
 int main ( int argc, char *argv[] ) {
     if (argc < 2) {
